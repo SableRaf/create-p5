@@ -14,6 +14,7 @@ import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from './src/v
 import { selectVersion, selectMode, selectTemplate } from './src/prompts.js';
 import { injectP5Script } from './src/template.js';
 import { createConfig, configExists } from './src/config.js';
+import { update } from './src/update.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,9 +22,17 @@ const __dirname = path.dirname(__filename);
 async function main() {
   // Parse command line arguments
   const args = minimist(process.argv.slice(2));
-  const projectName = args._[0] || 'my-sketch';
+  const command = args._[0];
 
-  // Check if we're in an existing p5.js project
+  // Handle 'update' command explicitly
+  if (command === 'update') {
+    await update();
+    return;
+  }
+
+  const projectName = command || 'my-sketch';
+
+  // Check if we're in an existing p5.js project (but not if running 'update' command)
   const currentConfigPath = path.join(process.cwd(), 'p5-config.json');
   if (await configExists(currentConfigPath)) {
     console.log('Existing p5.js project detected (p5-config.json found).');
