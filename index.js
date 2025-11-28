@@ -104,7 +104,17 @@ EXAMPLES:
   try {
     // Fetch available p5.js versions
     console.log('Fetching p5.js versions...');
-    const { latest, versions } = await fetchVersions();
+    let latest, versions;
+    try {
+      ({ latest, versions } = await fetchVersions());
+    } catch (error) {
+      console.error(`Error: ${error.message}`);
+      console.error('\nTroubleshooting:');
+      console.error('  1. Check your internet connection');
+      console.error('  2. Verify that https://data.jsdelivr.com is accessible');
+      console.error('  3. Try again in a few moments');
+      process.exit(1);
+    }
 
     // Determine template (flag or prompt)
     let selectedTemplate;
@@ -184,8 +194,15 @@ EXAMPLES:
     if (selectedMode === 'local') {
       const libPath = path.join(targetPath, 'lib');
       await fs.mkdir(libPath, { recursive: true });
-      await downloadP5Files(selectedVersion, libPath);
-      await addLibToGitignore(targetPath);
+      try {
+        await downloadP5Files(selectedVersion, libPath);
+        await addLibToGitignore(targetPath);
+      } catch (error) {
+        console.error(`Error: ${error.message}`);
+        console.error('\nCleaning up...');
+        await fs.rm(targetPath, { recursive: true, force: true });
+        process.exit(1);
+      }
     }
 
     // Inject p5.js script tag into index.html
@@ -199,7 +216,14 @@ EXAMPLES:
     if (args.types !== false) {
       const typesPath = path.join(targetPath, 'types');
       await fs.mkdir(typesPath, { recursive: true });
-      typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath);
+      try {
+        typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath);
+      } catch (error) {
+        console.error(`Warning: ${error.message}`);
+        console.error('Continuing without TypeScript definitions...');
+        // Don't fail the entire operation if type definitions fail
+        typeDefsVersion = null;
+      }
     } else {
       console.log('Skipping TypeScript definitions download (--no-types flag)');
     }
@@ -223,7 +247,18 @@ EXAMPLES:
     console.log(`  cd ${projectName}`);
     console.log(`  Open index.html in your browser`);
   } catch (error) {
-    console.error('Error creating project:', error.message);
+    console.error('\nError creating project:', error.message);
+
+    // Attempt to clean up the project directory if it was partially created
+    try {
+      if (await directoryExists(targetPath)) {
+        console.error('Cleaning up incomplete project directory...');
+        await fs.rm(targetPath, { recursive: true, force: true });
+      }
+    } catch (cleanupError) {
+      console.error('Warning: Could not clean up project directory:', cleanupError.message);
+    }
+
     process.exit(1);
   }
 }
