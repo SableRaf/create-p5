@@ -9,6 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import minimist from 'minimist';
+import * as p from '@clack/prompts';
+import { green, red, blue, cyan } from 'kolorist';
 import { copyTemplateFiles, validateProjectName, directoryExists, validateTemplate, validateMode, validateVersion } from './src/utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from './src/version.js';
 import { selectVersion, selectMode, selectTemplate } from './src/prompts.js';
@@ -98,17 +100,20 @@ EXAMPLES:
     process.exit(1);
   }
 
-  console.log('Welcome to create-p5!');
-  console.log(`Creating project: ${projectName}`);
+  p.intro(cyan('create-p5'));
+  console.log(`Creating project: ${blue(projectName)}`);
 
   try {
     // Fetch available p5.js versions
-    console.log('Fetching p5.js versions...');
+    const s = p.spinner();
+    s.start('Fetching p5.js versions');
     let latest, versions;
     try {
       ({ latest, versions } = await fetchVersions());
+      s.stop(green('✓') + ' Fetched available versions');
     } catch (error) {
-      console.error(`Error: ${error.message}`);
+      s.stop(red('✗') + ' Failed to fetch versions');
+      console.error(`\n${red('Error:')} ${error.message}`);
       console.error('\nTroubleshooting:');
       console.error('  1. Check your internet connection');
       console.error('  2. Verify that https://data.jsdelivr.com is accessible');
@@ -121,14 +126,14 @@ EXAMPLES:
     if (args.template) {
       const templateError = validateTemplate(args.template);
       if (templateError) {
-        console.error(`Error: ${templateError}`);
+        console.error(`${red('Error:')} ${templateError}`);
         process.exit(1);
       }
       selectedTemplate = args.template;
-      console.log(`Using template: ${selectedTemplate}`);
+      console.log(`${green('✓')} Using template: ${blue(selectedTemplate)}`);
     } else if (args.yes) {
       selectedTemplate = 'basic';
-      console.log('Using default template: basic');
+      console.log(`${green('✓')} Using default template: ${blue('basic')}`);
     } else {
       selectedTemplate = await selectTemplate();
     }
@@ -138,14 +143,14 @@ EXAMPLES:
     if (args.version) {
       const versionError = validateVersion(args.version, versions, latest);
       if (versionError) {
-        console.error(`Error: ${versionError}`);
+        console.error(`${red('Error:')} ${versionError}`);
         process.exit(1);
       }
       selectedVersion = args.version === 'latest' ? latest : args.version;
-      console.log(`Using p5.js version: ${selectedVersion}`);
+      console.log(`${green('✓')} Using p5.js version: ${blue(selectedVersion)}`);
     } else if (args.yes) {
       selectedVersion = latest;
-      console.log(`Using latest p5.js version: ${latest}`);
+      console.log(`${green('✓')} Using latest p5.js version: ${blue(latest)}`);
     } else {
       selectedVersion = await selectVersion(versions, latest);
     }
@@ -155,14 +160,14 @@ EXAMPLES:
     if (args.mode) {
       const modeError = validateMode(args.mode);
       if (modeError) {
-        console.error(`Error: ${modeError}`);
+        console.error(`${red('Error:')} ${modeError}`);
         process.exit(1);
       }
       selectedMode = args.mode;
-      console.log(`Using delivery mode: ${selectedMode}`);
+      console.log(`${green('✓')} Using delivery mode: ${blue(selectedMode)}`);
     } else if (args.yes) {
       selectedMode = 'cdn';
-      console.log('Using default delivery mode: cdn');
+      console.log(`${green('✓')} Using default delivery mode: ${blue('cdn')}`);
     } else {
       selectedMode = await selectMode();
     }
@@ -183,22 +188,32 @@ EXAMPLES:
     const templatePath = path.join(__dirname, 'templates', selectedTemplate);
 
     // Copy template files
+    const copySpinner = p.spinner();
+    copySpinner.start('Copying template files');
     await copyTemplateFiles(templatePath, targetPath);
+    copySpinner.stop(green('✓') + ' Copied template files');
 
     // Initialize git repository if requested (do this before other file operations)
     if (args.git) {
+      const gitSpinner = p.spinner();
+      gitSpinner.start('Initializing git repository');
       await initGit(targetPath);
+      gitSpinner.stop(green('✓') + ' Initialized git repository');
     }
 
     // If local mode, create lib directory and download p5.js files
     if (selectedMode === 'local') {
       const libPath = path.join(targetPath, 'lib');
       await fs.mkdir(libPath, { recursive: true });
+      const downloadSpinner = p.spinner();
+      downloadSpinner.start('Downloading p5.js files');
       try {
         await downloadP5Files(selectedVersion, libPath);
         await addLibToGitignore(targetPath);
+        downloadSpinner.stop(green('✓') + ' Downloaded p5.js files');
       } catch (error) {
-        console.error(`Error: ${error.message}`);
+        downloadSpinner.stop(red('✗') + ' Failed to download p5.js files');
+        console.error(`${red('Error:')} ${error.message}`);
         console.error('\nCleaning up...');
         await fs.rm(targetPath, { recursive: true, force: true });
         process.exit(1);
@@ -216,16 +231,20 @@ EXAMPLES:
     if (args.types !== false) {
       const typesPath = path.join(targetPath, 'types');
       await fs.mkdir(typesPath, { recursive: true });
+      const typesSpinner = p.spinner();
+      typesSpinner.start('Downloading TypeScript definitions');
       try {
         typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath);
+        typesSpinner.stop(green('✓') + ' Downloaded TypeScript definitions');
       } catch (error) {
-        console.error(`Warning: ${error.message}`);
+        typesSpinner.stop(blue('⚠') + ' TypeScript definitions unavailable');
+        console.error(`${blue('Warning:')} ${error.message}`);
         console.error('Continuing without TypeScript definitions...');
         // Don't fail the entire operation if type definitions fail
         typeDefsVersion = null;
       }
     } else {
-      console.log('Skipping TypeScript definitions download (--no-types flag)');
+      console.log(`${blue('⚠')} Skipping TypeScript definitions download (--no-types flag)`);
     }
 
     // Create p5-config.json in project root
