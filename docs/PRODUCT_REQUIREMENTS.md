@@ -918,11 +918,13 @@ https://cdn.jsdelivr.net/npm/@types/p5@{version}/index.d.ts
 
 ### Stretch Goals (Post-MVP)
 
+- Use moniker or similar to generate random friendly project names if none provided
 - Support for loading templates from the OpenProcessing API with a sketch ID or URL (requires API access and licensing checks)
 - Support for p5 1.x and p5 2.x side by side
 - Support for additional p5.js libraries (p5.sound) in p5 1.x projects (they are built-in in p5 2.x)
 - Support for searching examples from the p5.js website and using them as templates (will need crediting and licensing checks + central registry)
 - Install script to install dependencies and create a `p5` CLI command for easier access and more concise commands
+- Friendly Error System `🌸 p5.js says: ...` with user-friendly messages and suggestions to help users understand and fix common issues. Similar to the built-in p5.js FES.
 
 ---
 
