@@ -804,6 +804,13 @@ Stage 8 is complete and working. The tool now provides:
 - Verbose logging mode for debugging
 - Automatic cleanup on failures
 
+### Remaining issues (not blocking Stage 9)
+
+When running on Windows, occasionally encounters the following error on exit:
+`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76`
+This may be a library issue with `@clack/prompts` or `kolorist`. Further investigation needed.
+
+
 **Ready to proceed to Stage 9: Refactoring and Code Quality**
 
 ---

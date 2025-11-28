@@ -126,14 +126,31 @@ EXAMPLES:
       process.exit(1);
     }
 
-    // Determine template (flag or prompt)
-    let selectedTemplate;
+    // Validate all flags immediately after fetching versions (before any prompts)
     if (args.template) {
       const templateError = validateTemplate(args.template);
       if (templateError) {
-        console.error(`${red('Error:')} ${templateError}`);
-        process.exit(1);
+        throw new Error(templateError);
       }
+    }
+
+    if (args.version) {
+      const versionError = validateVersion(args.version, versions, latest);
+      if (versionError) {
+        throw new Error(versionError);
+      }
+    }
+
+    if (args.mode) {
+      const modeError = validateMode(args.mode);
+      if (modeError) {
+        throw new Error(modeError);
+      }
+    }
+
+    // Determine template (flag or prompt)
+    let selectedTemplate;
+    if (args.template) {
       selectedTemplate = args.template;
       console.log(`${green('✓')} Using template: ${blue(selectedTemplate)}`);
     } else if (args.yes) {
@@ -146,11 +163,6 @@ EXAMPLES:
     // Determine version (flag or prompt)
     let selectedVersion;
     if (args.version) {
-      const versionError = validateVersion(args.version, versions, latest);
-      if (versionError) {
-        console.error(`${red('Error:')} ${versionError}`);
-        process.exit(1);
-      }
       selectedVersion = args.version === 'latest' ? latest : args.version;
       console.log(`${green('✓')} Using p5.js version: ${blue(selectedVersion)}`);
     } else if (args.yes) {
@@ -163,11 +175,6 @@ EXAMPLES:
     // Determine delivery mode (flag or prompt)
     let selectedMode;
     if (args.mode) {
-      const modeError = validateMode(args.mode);
-      if (modeError) {
-        console.error(`${red('Error:')} ${modeError}`);
-        process.exit(1);
-      }
       selectedMode = args.mode;
       console.log(`${green('✓')} Using delivery mode: ${blue(selectedMode)}`);
     } else if (args.yes) {
