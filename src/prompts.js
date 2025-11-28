@@ -17,6 +17,38 @@ export async function selectVersion(versions, latest) {
 }
 
 /**
+ * Displays a template selection prompt to the user
+ * @returns {Promise<string>} The selected template name ('basic', 'instance', 'typescript', or 'empty')
+ */
+export async function selectTemplate() {
+  return await p.select({
+    message: 'Select template:',
+    options: [
+      {
+        value: 'basic',
+        label: 'Basic',
+        hint: 'Standard p5.js with global mode (recommended for beginners)'
+      },
+      {
+        value: 'instance',
+        label: 'Instance Mode',
+        hint: 'Multiple sketches on one page, avoids global namespace'
+      },
+      {
+        value: 'typescript',
+        label: 'TypeScript',
+        hint: 'TypeScript setup with type definitions'
+      },
+      {
+        value: 'empty',
+        label: 'Empty',
+        hint: 'Minimal HTML only, build your own structure'
+      }
+    ]
+  });
+}
+
+/**
  * Displays a delivery mode selection prompt to the user
  * @returns {Promise<string>} The selected mode ('cdn' or 'local')
  */
