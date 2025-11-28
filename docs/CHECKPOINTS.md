@@ -56,7 +56,7 @@ This file tracks the completion of each stage in the create-p5 implementation pl
 - Running `node index.js` creates project with default "my-sketch" name
 - Opening `index.html` in browser shows working p5.js sketch
 
-### Ship It! =�
+### Ship It! =�
 
 Stage 1 proof of concept is complete and working. The tool can scaffold basic p5.js projects with:
 - Hardcoded p5.js v2.1.1
@@ -70,15 +70,76 @@ Stage 1 proof of concept is complete and working. The tool can scaffold basic p5
 
 ## Stage 2: Dynamic Version Selection
 
-**Status:** PENDING
-**Goal:** Fetch real p5.js versions from jsdelivr API
-**Time:** 3-4 hours, 3 commits
+**Status:** COMPLETE
+**Date:** 2025-11-28
+**Time:** 3-4 hours, 4 commits
 
-### Planned Commits
+### Commits
 
-1. Create VersionProvider module
-2. Add interactive version selection
-3. Inject selected version into template
+1. **feat: create VersionProvider module** (`22a1768`)
+   - Created `src/version.js` with `fetchVersions()` function
+   - Fetches versions from `https://data.jsdelivr.com/v1/package/npm/p5`
+   - Returns object with `{ latest, versions }` (limited to 15 most recent)
+   - Uses native Node.js fetch API
+
+2. **feat: add interactive version selection** (`1033da3`)
+   - Created `src/prompts.js` with `selectVersion()` function
+   - Uses `@clack/prompts.select()` for version selection
+   - Displays versions with "(latest)" indicator
+   - Returns selected version string
+
+3. **feat: inject selected version into template** (`1468995`)
+   - Created `src/template.js` with `injectP5Script()` function
+   - Uses `linkedom` for proper DOM parsing and manipulation
+   - Implements two-tier strategy:
+     1. Replace `<!-- P5JS_SCRIPT_TAG -->` marker comment
+     2. Insert script tag at beginning of `<head>`
+   - Builds CDN URL: `https://cdn.jsdelivr.net/npm/p5@{version}/lib/p5.js`
+   - Preserves DOCTYPE declaration
+
+4. **feat: integrate Stage 2 modules into main workflow** (`d5bd571`)
+   - Updated `templates/basic/index.html` to use marker comment
+   - Integrated version fetching and selection into `index.js`
+   - Added `linkedom` dependency to `package.json`
+   - Updated `.gitignore` to exclude test artifacts
+
+### Checkpoint Verification
+
+**Test Results:**
+- Version fetching works (15 versions from jsdelivr API)
+- Latest version: 2.1.1
+- Interactive prompts display version choices
+- Marker comment successfully replaced with script tag
+- DOCTYPE and HTML structure preserved
+- Script tag properly injected: `<script src="https://cdn.jsdelivr.net/npm/p5@2.1.1/lib/p5.js"></script>`
+
+**Integration Test:**
+```bash
+node test-integration.js
+```
+Results:
+- ✓ Fetched 15 versions, latest: 2.1.1
+- ✓ Template files copied
+- ✓ Script tag injected correctly
+- ✓ Marker removed
+- ✓ DOCTYPE preserved
+
+### Demo-able Features
+
+- Running the CLI now prompts for p5.js version selection
+- Users can choose from 15 most recent versions
+- Latest version is clearly marked
+- Selected version is injected into the template
+- Version information shown in success message
+
+### Ship It! 🚢
+
+Stage 2 is complete and working. Users can now:
+- Select any p5.js version from the 15 most recent
+- See which version is latest
+- Have the selected version properly injected into their project
+
+**Ready to proceed to Stage 3: Project Configuration Persistence**
 
 ---
 
