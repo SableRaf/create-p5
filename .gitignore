@@ -142,3 +142,4 @@ dist
 test-*.js
 test-sketch-*/
 my-sketch-*/
+my-sketch/
