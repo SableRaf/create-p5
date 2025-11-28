@@ -38,6 +38,91 @@ export async function copyTemplateFiles(templatePath, targetPath) {
 }
 
 /**
+ * Create a directory (recursive)
+ * @param {string} dirPath
+ */
+export async function createDirectory(dirPath) {
+  await fs.mkdir(dirPath, { recursive: true });
+}
+
+/**
+ * Copy a single file from source to destination
+ * @param {string} source
+ * @param {string} dest
+ */
+export async function copyFile(source, dest) {
+  await fs.copyFile(source, dest);
+}
+
+/**
+ * Check if a file or directory exists
+ * @param {string} pth
+ * @returns {Promise<boolean>}
+ */
+export async function fileExists(pth) {
+  try {
+    await fs.stat(pth);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Read JSON file and parse it. Returns null on missing file.
+ * @param {string} jsonPath
+ * @returns {Promise<any|null>}
+ */
+export async function readJSON(jsonPath) {
+  try {
+    const content = await fs.readFile(jsonPath, 'utf-8');
+    return JSON.parse(content);
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Write an object as JSON to a file with 2-space indent
+ * @param {string} jsonPath
+ * @param {any} obj
+ */
+export async function writeJSON(jsonPath, obj) {
+  const content = JSON.stringify(obj, null, 2) + '\n';
+  await fs.writeFile(jsonPath, content, 'utf-8');
+}
+
+/**
+ * Convenience readFile wrapper
+ * @param {string} filePath
+ * @returns {Promise<string>}
+ */
+export async function readFile(filePath) {
+  return await fs.readFile(filePath, 'utf-8');
+}
+
+/**
+ * Convenience writeFile wrapper
+ * @param {string} filePath
+ * @param {string} content
+ */
+export async function writeFile(filePath, content) {
+  await fs.writeFile(filePath, content, 'utf-8');
+}
+
+/**
+ * Remove a directory recursively (safe)
+ * @param {string} dirPath
+ */
+export async function removeDirectory(dirPath) {
+  try {
+    await fs.rm(dirPath, { recursive: true, force: true });
+  } catch {
+    // ignore
+  }
+}
+
+/**
  * Validates a project name according to npm naming conventions.
  * Returns an error message if invalid, or null if valid.
  *

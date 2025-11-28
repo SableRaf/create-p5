@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
-import fs from 'fs/promises';
 import path from 'path';
+import { readFile, writeFile, fileExists } from './utils.js';
 
 /**
  * Checks if git is installed on the system
@@ -66,10 +66,8 @@ async function createGitignore(projectDir) {
 
   // Check if .gitignore already exists
   let existingContent = '';
-  try {
-    existingContent = await fs.readFile(gitignorePath, 'utf-8');
-  } catch {
-    // .gitignore doesn't exist, start with empty content
+  if (await fileExists(gitignorePath)) {
+    existingContent = await readFile(gitignorePath);
   }
 
   // Standard entries for p5.js projects
@@ -92,7 +90,7 @@ async function createGitignore(projectDir) {
 
   // Only add entries if .gitignore doesn't already have substantial content
   if (existingContent.trim().length === 0) {
-    await fs.writeFile(gitignorePath, gitignoreEntries.join('\n') + '\n', 'utf-8');
+    await writeFile(gitignorePath, gitignoreEntries.join('\n') + '\n');
   }
 }
 
@@ -105,15 +103,13 @@ export async function addLibToGitignore(projectDir) {
   const gitignorePath = path.join(projectDir, '.gitignore');
 
   let gitignoreContent = '';
-  try {
-    gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
-  } catch {
-    // .gitignore doesn't exist, start with empty content
+  if (await fileExists(gitignorePath)) {
+    gitignoreContent = await readFile(gitignorePath);
   }
 
   // Check if lib/ is already in .gitignore
   if (!gitignoreContent.includes('lib/')) {
     const libEntry = '\n# Local p5.js files\nlib/\n';
-    await fs.writeFile(gitignorePath, gitignoreContent + libEntry, 'utf-8');
+    await writeFile(gitignorePath, gitignoreContent + libEntry);
   }
 }

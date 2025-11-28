@@ -69,3 +69,21 @@ export async function selectMode() {
     ]
   });
 }
+
+/**
+ * Run the full interactive prompt flow and return a structured options object
+ * @param {string[]} versions - Available versions (descending order)
+ * @param {string} latest - Latest version string
+ * @returns {Promise<{template:string,mode:string,version:string}>}
+ */
+export async function runInteractivePrompts(versions, latest) {
+  const template = await selectTemplate();
+  const mode = await selectMode();
+  const version = await selectVersion(versions, latest);
+
+  return {
+    template,
+    mode,
+    version
+  };
+}

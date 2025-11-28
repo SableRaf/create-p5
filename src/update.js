@@ -3,12 +3,12 @@
  */
 
 import path from 'path';
-import fs from 'fs/promises';
 import { readConfig, createConfig } from './config.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from './version.js';
 import { selectVersion } from './prompts.js';
 import { injectP5Script } from './template.js';
 import * as p from '@clack/prompts';
+import { createDirectory, readFile, writeFile, fileExists, removeDirectory } from './utils.js';
 
 /**
  * Main update function - Entry point for updating existing projects
@@ -96,21 +96,21 @@ async function updateVersion(projectDir, config) {
   if (config.mode === 'local') {
     // Re-download p5.js files for local mode
     const libPath = path.join(projectDir, 'lib');
-    await fs.mkdir(libPath, { recursive: true });
+    await createDirectory(libPath);
     await downloadP5Files(newVersion, libPath);
     console.log('✓ Downloaded new p5.js files to lib/');
   }
 
   // Update script tag in index.html (works for both CDN and local)
   const indexPath = path.join(projectDir, 'index.html');
-  const htmlContent = await fs.readFile(indexPath, 'utf-8');
+  const htmlContent = await readFile(indexPath);
   const updatedHtml = injectP5Script(htmlContent, newVersion, config.mode);
-  await fs.writeFile(indexPath, updatedHtml, 'utf-8');
+  await writeFile(indexPath, updatedHtml);
   console.log('✓ Updated script tag in index.html');
 
   // Update TypeScript definitions
   const typesPath = path.join(projectDir, 'types');
-  await fs.mkdir(typesPath, { recursive: true });
+  await createDirectory(typesPath);
   const typeDefsVersion = await downloadTypeDefinitions(newVersion, typesPath);
   console.log(`✓ Updated TypeScript definitions to version ${typeDefsVersion}`);
 
@@ -144,22 +144,20 @@ async function switchMode(projectDir, config) {
   if (newMode === 'local') {
     // CDN → Local: Download files and update script tag
     const libPath = path.join(projectDir, 'lib');
-    await fs.mkdir(libPath, { recursive: true });
+    await createDirectory(libPath);
     await downloadP5Files(config.version, libPath);
     console.log('✓ Downloaded p5.js files to lib/');
 
     // Update .gitignore to exclude lib/ directory
     const gitignorePath = path.join(projectDir, '.gitignore');
     let gitignoreContent = '';
-    try {
-      gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
-    } catch {
-      // .gitignore doesn't exist, start with empty content
+    if (await fileExists(gitignorePath)) {
+      gitignoreContent = await readFile(gitignorePath);
     }
 
     // Only add lib/ if not already present
     if (!gitignoreContent.includes('lib/')) {
-      await fs.writeFile(gitignorePath, gitignoreContent + '\n# Local p5.js files\nlib/\n', 'utf-8');
+      await writeFile(gitignorePath, gitignoreContent + '\n# Local p5.js files\nlib/\n');
       console.log('✓ Updated .gitignore to exclude lib/');
     }
   } else {
@@ -172,7 +170,7 @@ async function switchMode(projectDir, config) {
     if (shouldDelete) {
       const libPath = path.join(projectDir, 'lib');
       try {
-        await fs.rm(libPath, { recursive: true, force: true });
+        await removeDirectory(libPath);
         console.log('✓ Deleted lib/ directory');
       } catch (error) {
         console.log('Note: lib/ directory not found or already deleted');
@@ -184,9 +182,9 @@ async function switchMode(projectDir, config) {
 
   // Update script tag in index.html
   const indexPath = path.join(projectDir, 'index.html');
-  const htmlContent = await fs.readFile(indexPath, 'utf-8');
+  const htmlContent = await readFile(indexPath);
   const updatedHtml = injectP5Script(htmlContent, config.version, newMode);
-  await fs.writeFile(indexPath, updatedHtml, 'utf-8');
+  await writeFile(indexPath, updatedHtml);
   console.log('✓ Updated script tag in index.html');
 
   // Update p5-config.json

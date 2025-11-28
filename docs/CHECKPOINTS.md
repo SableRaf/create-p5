@@ -817,9 +817,43 @@ This may be a library issue with `@clack/prompts` or `kolorist`. Further investi
 
 ## Stage 9: Refactoring and Code Quality
 
-**Status:** PENDING
-**Goal:** Clean, maintainable, DRY code
+**Status:** COMPLETE
+**Date:** 2025-11-28
 **Time:** 3-4 hours, 3 commits
+
+### Commits
+
+1. **refactor: extract shared file utilities to `src/utils.js`**
+   - Consolidated repeated fs operations into a single helper module
+   - Added `createDirectory()`, `copyFile()`, `fileExists()`, `readJSON()`, `writeJSON()`, `readFile()`, `writeFile()`, and `removeDirectory()` helpers
+   - Replaced inline `fs` usage in `src/config.js`, `src/update.js`, `src/git.js`, and `src/version.js` to centralize IO and improve testability
+
+2. **refactor: simplify prompt orchestration in `src/prompts.js`**
+   - Added `runInteractivePrompts()` to run template, mode, and version prompts in sequence
+   - Returned a structured options object (`{ template, mode, version }`) to reduce duplication in CLI routing
+   - Kept existing individual prompt functions for backward compatibility
+
+3. **refactor: abstract HTML manipulation into `HTMLManager` (`src/template.js`)**
+   - Encapsulated `linkedom` operations in an `HTMLManager` class with `findP5Script()`, `updateP5Script()`, and `serialize()` methods
+   - Preserved multi-CDN detection, marker replacement, and insert-into-head strategies
+   - Exported a small `injectP5Script()` wrapper for backwards compatibility with the existing API
+
+### Checkpoint Verification
+
+- Ran a CLI smoke check (`node index.js --help`) — CLI rendered correctly with no syntax/runtime errors.
+- Verified that config read/write operations now use `readJSON`/`writeJSON` helpers and that `p5-config.json` creation flow remains unchanged.
+- Verified update and mode-switch workflows still update `index.html` correctly (script tag detection and replacement preserved via `HTMLManager`).
+- Ensured `.gitignore` updates and local `lib/` handling now use unified helpers and that deletion of `lib/` uses the `removeDirectory()` helper.
+
+### Demo-able Features
+
+- Project scaffolding and update flows behave identically to Stage 8 from the user's perspective.
+- Internal code is more modular and DRY: filesystem operations are centralized, prompts are orchestrated by a single function, and HTML DOM operations are encapsulated in `HTMLManager`.
+- No behavior changes introduced; functionality preserved for CDN/local modes, template selection, type downloads, and update workflows.
+
+### Ship It! 🚢
+
+Stage 9 refactor is complete. The codebase is more maintainable and prepared for Stage 10 (Documentation and Testing).
 
 ---
 

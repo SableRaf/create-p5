@@ -2,7 +2,7 @@
  * ConfigManager - Handles p5-config.json read/write operations
  */
 
-import fs from 'fs/promises';
+import { readJSON, writeJSON, fileExists } from './utils.js';
 
 /**
  * Creates a new p5-config.json file with project metadata
@@ -24,7 +24,7 @@ export async function createConfig(configPath, options) {
     lastUpdated: new Date().toISOString()
   };
 
-  await fs.writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+  await writeJSON(configPath, config);
 }
 
 /**
@@ -34,13 +34,7 @@ export async function createConfig(configPath, options) {
  * @returns {Promise<Object|null>} The configuration object with {version, mode, template, typeDefsVersion, lastUpdated} or null if file doesn't exist
  */
 export async function readConfig(configPath) {
-  try {
-    const content = await fs.readFile(configPath, 'utf-8');
-    return JSON.parse(content);
-  } catch (error) {
-    // Config doesn't exist
-    return null;
-  }
+  return await readJSON(configPath);
 }
 
 /**
@@ -50,10 +44,5 @@ export async function readConfig(configPath) {
  * @returns {Promise<boolean>} True if the config file exists, false otherwise
  */
 export async function configExists(configPath) {
-  try {
-    await fs.access(configPath);
-    return true;
-  } catch {
-    return false;
-  }
+  return await fileExists(configPath);
 }

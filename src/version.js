@@ -1,4 +1,4 @@
-import { writeFile } from 'fs/promises';
+import { writeFile } from './utils.js';
 
 /**
  * Fetches available p5.js versions from jsdelivr CDN API
