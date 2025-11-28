@@ -14,8 +14,14 @@ create-p5 is an npm scaffolding tool that enables users to quickly create and ma
 
 ```
 create-p5/
+
 ├── index.js                 # Entry point (#!/usr/bin/env node)
 ├── package.json
+├── docs/
+│   ├── DOCUMENTATION_GUIDELINES.md   # Coding standards and documentation practices
+│   ├── PRODUCT_REQUIREMENTS.md       # High-level product requirements and features
+│   └── WORKFLOW_GUIDELINES.md        # Development workflow and best practices
+│   └── IMPLEMENTATION_PLAN.md        # Implementation plan and steps (generated from WORKFLOW_GUIDELINES)
 ├── src/
 │   ├── cli.js              # Main CLI logic and routing
 │   ├── scaffold.js         # New project creation
