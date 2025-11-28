@@ -15,6 +15,7 @@ import { selectVersion, selectMode, selectTemplate } from './src/prompts.js';
 import { injectP5Script } from './src/template.js';
 import { createConfig, configExists } from './src/config.js';
 import { update } from './src/update.js';
+import { initGit, addLibToGitignore } from './src/git.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -164,16 +165,7 @@ EXAMPLES:
       const libPath = path.join(targetPath, 'lib');
       await fs.mkdir(libPath, { recursive: true });
       await downloadP5Files(selectedVersion, libPath);
-
-      // Update .gitignore to exclude lib/ directory in local mode
-      const gitignorePath = path.join(targetPath, '.gitignore');
-      let gitignoreContent = '';
-      try {
-        gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
-      } catch {
-        // .gitignore doesn't exist, start with empty content
-      }
-      await fs.writeFile(gitignorePath, gitignoreContent + '\n# Local p5.js files\nlib/\n', 'utf-8');
+      await addLibToGitignore(targetPath);
     }
 
     // Inject p5.js script tag into index.html
@@ -200,6 +192,11 @@ EXAMPLES:
       template: selectedTemplate,
       typeDefsVersion
     });
+
+    // Initialize git repository if requested
+    if (args.git) {
+      await initGit(targetPath);
+    }
 
     console.log(`✓ Project created successfully!`);
     console.log(`  p5.js version: ${selectedVersion}`);
