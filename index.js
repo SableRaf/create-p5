@@ -144,6 +144,18 @@ EXAMPLES:
       selectedMode = await selectMode();
     }
 
+    // Show summary of choices if not using --yes flag
+    if (!args.yes && (args.template || args.version || args.mode || args.git || args.types === false)) {
+      console.log('\nProject configuration:');
+      console.log(`  Project name: ${projectName}`);
+      console.log(`  Template: ${selectedTemplate}`);
+      console.log(`  p5.js version: ${selectedVersion}`);
+      console.log(`  Delivery mode: ${selectedMode}`);
+      console.log(`  Git initialization: ${args.git ? 'yes' : 'no'}`);
+      console.log(`  TypeScript definitions: ${args.types === false ? 'no' : 'yes'}`);
+      console.log('');
+    }
+
     // Set up paths based on selected template
     const templatePath = path.join(__dirname, 'templates', selectedTemplate);
     const targetPath = path.join(process.cwd(), projectName);
@@ -159,6 +171,11 @@ EXAMPLES:
 
     // Copy template files
     await copyTemplateFiles(templatePath, targetPath);
+
+    // Initialize git repository if requested (do this before other file operations)
+    if (args.git) {
+      await initGit(targetPath);
+    }
 
     // If local mode, create lib directory and download p5.js files
     if (selectedMode === 'local') {
@@ -176,7 +193,7 @@ EXAMPLES:
 
     // Download TypeScript definitions for IntelliSense (all templates)
     let typeDefsVersion = null;
-    if (!args['no-types']) {
+    if (args.types !== false) {
       const typesPath = path.join(targetPath, 'types');
       await fs.mkdir(typesPath, { recursive: true });
       typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath);
@@ -192,11 +209,6 @@ EXAMPLES:
       template: selectedTemplate,
       typeDefsVersion
     });
-
-    // Initialize git repository if requested
-    if (args.git) {
-      await initGit(targetPath);
-    }
 
     console.log(`✓ Project created successfully!`);
     console.log(`  p5.js version: ${selectedVersion}`);
