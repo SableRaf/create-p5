@@ -4,14 +4,11 @@
 const sketch = (p) => {
   p.setup = () => {
     p.createCanvas(400, 400);
+    p.background(220);
   };
 
   p.draw = () => {
-    p.background(220);
-
     // Draw a simple circle that follows the mouse
-    p.fill(100, 150, 255);
-    p.noStroke();
     p.ellipse(p.mouseX, p.mouseY, 50, 50);
   };
 };
