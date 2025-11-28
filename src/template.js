@@ -5,13 +5,16 @@ import { parseHTML } from 'linkedom';
  * Uses three-tier strategy: update existing script, replace marker, or insert into head
  * @param {string} htmlString - The HTML content to modify
  * @param {string} version - The p5.js version to inject
+ * @param {string} [mode='cdn'] - Delivery mode ('cdn' or 'local')
  * @returns {string} Modified HTML with p5.js script tag injected
  */
-export function injectP5Script(htmlString, version) {
+export function injectP5Script(htmlString, version, mode = 'cdn') {
   const { document } = parseHTML(htmlString);
 
-  // Build CDN URL
-  const scriptUrl = `https://cdn.jsdelivr.net/npm/p5@${version}/lib/p5.js`;
+  // Build script URL based on mode
+  const scriptUrl = mode === 'local'
+    ? './lib/p5.js'
+    : `https://cdn.jsdelivr.net/npm/p5@${version}/lib/p5.js`;
 
   // Strategy 1: Look for marker comment
   const marker = findMarker(document);

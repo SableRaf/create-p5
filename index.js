@@ -11,7 +11,7 @@ import fs from 'fs/promises';
 import minimist from 'minimist';
 import { copyTemplateFiles } from './src/utils.js';
 import { fetchVersions } from './src/version.js';
-import { selectVersion } from './src/prompts.js';
+import { selectVersion, selectMode } from './src/prompts.js';
 import { injectP5Script } from './src/template.js';
 import { createConfig, configExists } from './src/config.js';
 
@@ -56,27 +56,30 @@ async function main() {
     // Prompt user to select version
     const selectedVersion = await selectVersion(versions, latest);
 
+    // Prompt user to select delivery mode
+    const selectedMode = await selectMode();
+
     // Copy template files
     await copyTemplateFiles(templatePath, targetPath);
 
     // Inject p5.js script tag into index.html
     const indexPath = path.join(targetPath, 'index.html');
     const htmlContent = await fs.readFile(indexPath, 'utf-8');
-    const updatedHtml = injectP5Script(htmlContent, selectedVersion);
+    const updatedHtml = injectP5Script(htmlContent, selectedVersion, selectedMode);
     await fs.writeFile(indexPath, updatedHtml, 'utf-8');
 
     // Create p5-config.json in project root
     const configPath = path.join(targetPath, 'p5-config.json');
     await createConfig(configPath, {
       version: selectedVersion,
-      mode: 'cdn',
+      mode: selectedMode,
       template: 'basic'
     });
 
     console.log(`✓ Project created successfully!`);
     console.log(`  p5.js version: ${selectedVersion}`);
     console.log(`  Template: basic`);
-    console.log(`  Mode: cdn`);
+    console.log(`  Mode: ${selectedMode}`);
     console.log(`  Config: p5-config.json created`);
     console.log(`\nNext steps:`);
     console.log(`  cd ${projectName}`);
