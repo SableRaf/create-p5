@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES6"
+  },
+  "include": [
+    "*.js",
+    "types/*.d.ts"
+  ]
+}
