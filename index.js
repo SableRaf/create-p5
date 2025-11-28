@@ -10,8 +10,8 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import minimist from 'minimist';
 import { copyTemplateFiles } from './src/utils.js';
-import { fetchVersions, downloadP5Files } from './src/version.js';
-import { selectVersion, selectMode } from './src/prompts.js';
+import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from './src/version.js';
+import { selectVersion, selectMode, selectTemplate } from './src/prompts.js';
 import { injectP5Script } from './src/template.js';
 import { createConfig, configExists } from './src/config.js';
 
@@ -33,31 +33,35 @@ async function main() {
     process.exit(0);
   }
 
-  const templatePath = path.join(__dirname, 'templates', 'basic');
-  const targetPath = path.join(process.cwd(), projectName);
-
   console.log('Welcome to create-p5!');
   console.log(`Creating project: ${projectName}`);
-
-  // Check if directory already exists
-  try {
-    await fs.access(targetPath);
-    console.error(`Error: Directory "${projectName}" already exists.`);
-    process.exit(1);
-  } catch {
-    // Directory doesn't exist, continue
-  }
 
   try {
     // Fetch available p5.js versions
     console.log('Fetching p5.js versions...');
     const { latest, versions } = await fetchVersions();
 
+    // Prompt user to select template
+    const selectedTemplate = await selectTemplate();
+
     // Prompt user to select version
     const selectedVersion = await selectVersion(versions, latest);
 
     // Prompt user to select delivery mode
     const selectedMode = await selectMode();
+
+    // Set up paths based on selected template
+    const templatePath = path.join(__dirname, 'templates', selectedTemplate);
+    const targetPath = path.join(process.cwd(), projectName);
+
+    // Check if directory already exists
+    try {
+      await fs.access(targetPath);
+      console.error(`Error: Directory "${projectName}" already exists.`);
+      process.exit(1);
+    } catch {
+      // Directory doesn't exist, continue
+    }
 
     // Copy template files
     await copyTemplateFiles(templatePath, targetPath);
@@ -80,18 +84,25 @@ async function main() {
     const updatedHtml = injectP5Script(htmlContent, selectedVersion, selectedMode);
     await fs.writeFile(indexPath, updatedHtml, 'utf-8');
 
+    // Download TypeScript definitions for IntelliSense (all templates)
+    const typesPath = path.join(targetPath, 'types');
+    await fs.mkdir(typesPath, { recursive: true });
+    const typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath);
+
     // Create p5-config.json in project root
     const configPath = path.join(targetPath, 'p5-config.json');
     await createConfig(configPath, {
       version: selectedVersion,
       mode: selectedMode,
-      template: 'basic'
+      template: selectedTemplate,
+      typeDefsVersion
     });
 
     console.log(`✓ Project created successfully!`);
     console.log(`  p5.js version: ${selectedVersion}`);
-    console.log(`  Template: basic`);
+    console.log(`  Template: ${selectedTemplate}`);
     console.log(`  Mode: ${selectedMode}`);
+    console.log(`  TypeScript definitions: ${typeDefsVersion}`);
     console.log(`  Config: p5-config.json created`);
     console.log(`\nNext steps:`);
     console.log(`  cd ${projectName}`);
