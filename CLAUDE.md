@@ -31,7 +31,18 @@ create-p5/
 │   ├── instance/           # Instance mode for multiple sketches
 │   ├── typescript/         # TypeScript setup with type definitions
 │   └── empty/              # Minimal HTML only
-└── tests/
+├── tests/
+└── proof_of_concept/       # Validated architectural patterns
+    └── src/
+        ├── api/
+        │   └── VersionProvider.js    # Version fetching from jsdelivr API
+        ├── config/
+        │   └── ConfigManager.js      # p5-config.json management
+        ├── file/
+        │   ├── FileManager.js        # File system operations
+        │   └── HTMLManager.js        # HTML parsing and manipulation
+        └── ui/
+            └── PromptProvider.js     # User interaction prompts
 ```
 
 ## Key Dependencies
@@ -40,6 +51,7 @@ create-p5/
 - `@clack/prompts` - Interactive prompts with spinners
 - `kolorist` - Terminal colors
 - `minimist` - Argument parsing
+- `linkedom` - Fast, standards-compliant HTML DOM parser for Node.js
 - `degit` - GitHub template cloning (community templates)
 
 **Development:**
@@ -65,16 +77,29 @@ The `update.js` module handles:
 - TypeScript definitions updates
 - Preserves user code, only modifies infrastructure
 
-### 3. Template System
-Templates use placeholder `<!-- INJECT_P5_SCRIPT -->` in HTML which gets replaced with either:
-- CDN: `<script src="https://cdn.jsdelivr.net/npm/p5@{version}/lib/p5.js"></script>`
-- Local: `<script src="lib/p5.js"></script>` (plus downloads to `lib/` directory)
+### 3. HTML Manipulation System
+Uses `linkedom` for proper DOM parsing and manipulation (not regex-based string replacement).
+
+**Three-tier script tag injection strategy:**
+1. **Update existing p5.js script** - Detects and updates existing p5.js script tags from any CDN provider, preserving user preferences (minification, CDN choice)
+2. **Replace marker comment** - Replaces `<!-- P5JS_SCRIPT_TAG -->` marker in templates with actual script tag
+3. **Insert into head** - If no script or marker found, inserts script tag at beginning of `<head>`
+
+**Multi-CDN Support:**
+- jsdelivr: `https://cdn.jsdelivr.net/npm/p5@{version}/lib/p5.js`
+- cdnjs: `https://cdnjs.cloudflare.com/ajax/libs/p5.js/{version}/p5.js`
+- unpkg: `https://unpkg.com/p5@{version}/lib/p5.js`
+- Local: `/lib/p5.js` (downloads to `lib/` directory)
+
+The HTMLManager detects existing CDN providers and preserves them during updates.
 
 ### 4. Version Management
-The `version.js` module:
-- Fetches available p5.js versions from `https://data.jsdelivr.com/v1/packages/npm/p5`
+The `version.js` module (VersionProvider in proof_of_concept):
+- Fetches available p5.js versions from `https://data.jsdelivr.com/v1/package/npm/p5` (note: singular "package")
+- Latest version accessed via `data.tags.latest`
+- All versions accessed via `data.versions` array
 - Shows latest 15 versions in interactive mode
-- Supports version matching for TypeScript definitions from `@types/p5`
+- Supports version matching for TypeScript definitions from `@types/p5` using same API
 - Downloads p5.js files from jsdelivr CDN when using local mode
 
 ## Development Workflow
@@ -126,21 +151,192 @@ async function downloadTypes(version, verbose = false) {
 ## Key Technical Details
 
 ### p5-config.json Schema
-Created during scaffolding, used by update commands:
+Created during scaffolding, used by update commands. Stores minimal metadata about the project setup:
 ```json
 {
   "version": "1.9.0",
   "mode": "cdn",
-  "template": "basic",
   "typeDefsVersion": "1.7.7",
-  "createdAt": "2025-11-28T10:30:00Z",
   "lastUpdated": "2025-11-28T10:30:00Z"
 }
 ```
 
+**Fields:**
+- `version` - The p5.js version currently in use
+- `mode` - Delivery mode: "cdn" or "local"
+- `typeDefsVersion` - Version of TypeScript definitions installed (null if none)
+- `lastUpdated` - ISO timestamp of last modification
+
 ### Node.js Requirements
 - **Minimum**: Node.js 18.0.0+ (for native fetch API and modern ESM support)
 - **Package Managers**: npm 7+, yarn 1.22+, pnpm 8+, bun 1.0+
+
+## Proof of Concept Architecture
+
+The `proof_of_concept/` directory contains validated implementations of core functionality, demonstrating key architectural patterns:
+
+### Module Organization
+Files are organized by domain responsibility:
+- **api/** - External API integrations (jsdelivr CDN)
+- **config/** - Configuration file management
+- **file/** - File system operations and HTML manipulation
+- **ui/** - User interaction and prompts
+
+### Key Architectural Patterns
+
+#### 1. Dependency Injection
+Components receive dependencies through constructor parameters rather than creating them internally:
+```javascript
+// ConfigManager depends on FileManager
+const fileManager = new FileManager();
+const configManager = new ConfigManager(fileManager, 'sketch/p5-config.json');
+```
+
+#### 2. Single Responsibility Principle
+Each class has one clear purpose:
+- **FileManager** - File I/O operations only
+- **HTMLManager** - HTML parsing and manipulation only
+- **VersionProvider** - Version data fetching only
+- **ConfigManager** - Configuration persistence only
+- **PromptProvider** - User interaction only
+
+#### 3. Facade Pattern for External Libraries
+PromptProvider wraps `@clack/prompts` with domain-specific methods, making it easy to swap prompt libraries later without changing business logic.
+
+#### 4. DOM Manipulation via linkedom
+HTMLManager uses linkedom's DOM API (not regex) for reliable HTML manipulation:
+- Parses HTML into proper DOM tree
+- Uses `querySelectorAll`, `createElement`, `setAttribute`, etc.
+- Serializes back to HTML string with DOCTYPE
+
+#### 5. Pattern Matching for Flexibility
+HTMLManager uses regex patterns to detect p5.js script tags from multiple CDN providers, enabling seamless updates regardless of how the project was originally created.
+
+### HTMLManager Implementation Details
+
+The HTMLManager in proof_of_concept demonstrates the robust approach to HTML manipulation:
+
+**Script Tag Detection Patterns:**
+```javascript
+static P5_PATTERNS = [
+  /^https?:\/\/cdn\.jsdelivr\.net\/npm\/p5@([^/]+)\/lib\/p5\.(min\.)?js$/,
+  /^https?:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/p5\.js\/([^/]+)\/p5\.(?:min\.)?js$/,
+  /^https?:\/\/unpkg\.com\/p5@([^/]+)\/lib\/p5\.(min\.)?js$/,
+  /^\.?\/?\bsketch\/lib\/p5(?:@([^/]+))?\.(min\.)?js$/,
+  /^\.?\/?\blib\/p5(?:@([^/]+))?\.(min\.)?js$/
+];
+```
+
+**Capture Groups:**
+- Group 1: Version string (e.g., "1.9.0")
+- Group 2: Minification indicator ("min." if present)
+
+**Update Strategy:**
+1. `findP5Script()` - Searches all `<script>` tags, returns version, minification status, and CDN provider
+2. `buildScriptURL()` - Constructs new script URL preserving user preferences (minified, CDN choice)
+3. `updateP5Script()` - Updates existing tag, replaces marker, or inserts new script in that priority order
+4. `serialize()` - Converts DOM back to HTML string with proper DOCTYPE
+
+**Marker Comment:**
+Built-in Templates in `templates/` should use `<!-- P5JS_SCRIPT_TAG -->` as a placeholder in `index.html`. The HTMLManager will replace this with the appropriate script tag during scaffolding.
+
+### VersionProvider Implementation Details
+
+The VersionProvider demonstrates the correct way to interact with the jsdelivr API:
+
+**CDN and API Endpoints:**
+```javascript
+const cdnUrl = 'https://cdn.jsdelivr.net/npm/';
+const apiUrl = 'https://data.jsdelivr.com/v1/package/npm/';
+```
+
+**Fetching Versions:**
+```javascript
+// Get all a list of all p5.js versions from https://data.jsdelivr.com/v1/package/npm/p5
+const response = await fetch(`${apiUrl}p5`);
+const data = await response.json();
+const versions = data.versions;  // Array of version strings
+const latest = data.tags.latest;  // Latest stable version
+```
+
+**Fetching TypeScript Definitions:**
+```javascript
+// Get all versions for @types/p5 from https://cdn.jsdelivr.net/npm/p5@{version}/types/global.d.ts
+const response = await fetch(`${cdnUrl}/p5@${version}/types/global.d.ts`);
+const data = await response.json();
+const typeVersions = data.versions;
+```
+
+**Methods:**
+- `getVersions()` - Returns all available p5.js versions
+- `getLatest()` - Returns the latest stable version
+- `getVersionsForPackage(packageName)` - Generic method for any npm package
+- `getLatestForPackage(packageName)` - Gets latest version for any package
+
+### FileManager Implementation Details
+
+The FileManager provides a comprehensive file I/O abstraction layer:
+
+**Core Operations:**
+- `readHTML()` / `writeHTML()` - HTML file operations with UTF-8 encoding
+- `readJSON()` / `writeJSON()` - JSON parsing and serialization with formatting
+- `createDir()` - Recursive directory creation
+- `exists()` - Non-throwing existence checks
+- `listDir()` - Directory listing with graceful error handling
+- `deleteFile()` / `deleteDir()` - File and directory removal
+
+**Download Operations:**
+```javascript
+// Simple download (throws on HTTP errors)
+await fileManager.downloadFile(url, targetPath);
+
+// Download with status check
+const response = await fileManager.downloadFileWithCheck(url);
+if (response.ok) {
+  const content = await response.text();
+  // Process content
+}
+```
+
+**Design Principles:**
+- All paths are absolute (no relative path assumptions)
+- Async/await for all I/O operations
+- Graceful error handling (returns false/empty array instead of throwing where appropriate)
+- UTF-8 encoding by default
+
+### Proof of Concept Validation Status
+
+The proof_of_concept modules have validated:
+✅ HTML manipulation using linkedom (not regex)
+✅ Multi-CDN detection and URL building
+✅ jsdelivr API interaction (correct endpoints and response structure)
+✅ Configuration file persistence
+✅ File I/O abstraction layer
+✅ User prompt interactions with @clack/prompts
+✅ Dependency injection pattern
+✅ Single responsibility principle
+
+**These implementations should be used as references** when building the production `src/` modules. The architectural patterns, API usage, and error handling strategies have been proven to work.
+
+### Download URLs for Local Mode
+
+When downloading p5.js files for local mode, use the jsdelivr CDN:
+
+**p5.js library files:**
+```
+https://cdn.jsdelivr.net/npm/p5@{version}/lib/p5.js
+https://cdn.jsdelivr.net/npm/p5@{version}/lib/p5.min.js
+```
+
+**TypeScript type definitions:**
+```
+https://cdn.jsdelivr.net/npm/p5@{version}/types/global.d.ts
+```
+
+Note: TypeScript types may not exist for all p5.js versions. The tool should:
+1. Try to download types for the exact p5.js version
+2. Fall back to the latest available @types/p5 version if exact match not found
+3. Store the actual downloaded version in `typeDefsVersion` config field
 
 ### Usage Patterns
 ```bash

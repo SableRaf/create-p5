@@ -2,15 +2,13 @@
 
 - Atomic commits: one purpose each. Small, focused changes.
 - Incremental: build in small, testable steps, with only the level of complexity necessary for that step.
-- User-focused: demo-able features
-- Demo-driven: build in small, testable increments with clear checkpoints
-- Make it work → make it right → make it fast
-- Modularity and DRY principles: Mock dependencies early. Keep components decoupled. 
 - Code against APIs, not implementations: Expose stable contracts and keep internal details hidden so implementations can change without breaking callers.
-- Tests: Automated tests for all new features and bug fixes. Run tests after each commit.
+- Single responsibility principle: Each module/class/function should have one focused purpose.
+- Make it work → make it right → make it fast
+- DRY principles: Avoid duplication through abstraction and reuse.
+- Tests: Automated tests for all new features and bug fixes. Run tests after each commit (after initial PoC)
 - Documentation: Document all public APIs and complex logic. Update docs with code changes.
 - Build for flexibility, testability, and long-term maintainability.
-- Don't optimize prematurely: Focus on correctness and clarity first, then profile and optimize bottlenecks later.
 
 ## Core Workflow 
 
