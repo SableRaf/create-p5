@@ -9,7 +9,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import minimist from 'minimist';
-import { copyTemplateFiles } from './src/utils.js';
+import { copyTemplateFiles, validateProjectName, directoryExists, validateTemplate, validateMode, validateVersion } from './src/utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from './src/version.js';
 import { selectVersion, selectMode, selectTemplate } from './src/prompts.js';
 import { injectP5Script } from './src/template.js';
@@ -73,6 +73,13 @@ EXAMPLES:
 
   const projectName = command || 'my-sketch';
 
+  // Validate project name
+  const nameError = validateProjectName(projectName);
+  if (nameError) {
+    console.error(`Error: ${nameError}`);
+    process.exit(1);
+  }
+
   // Check if we're in an existing p5.js project (but not if running 'update' command)
   const currentConfigPath = path.join(process.cwd(), 'p5-config.json');
   if (await configExists(currentConfigPath)) {
@@ -81,6 +88,14 @@ EXAMPLES:
     console.log('\nTo update this project, use:');
     console.log('  npx create-p5 update');
     process.exit(0);
+  }
+
+  // Check if target directory already exists
+  const targetPath = path.join(process.cwd(), projectName);
+  if (await directoryExists(targetPath)) {
+    console.error(`Error: Directory "${projectName}" already exists.`);
+    console.error(`Suggestion: Choose a different project name or remove the existing directory.`);
+    process.exit(1);
   }
 
   console.log('Welcome to create-p5!');
@@ -94,9 +109,9 @@ EXAMPLES:
     // Determine template (flag or prompt)
     let selectedTemplate;
     if (args.template) {
-      const validTemplates = ['basic', 'instance', 'typescript', 'empty'];
-      if (!validTemplates.includes(args.template)) {
-        console.error(`Error: Invalid template "${args.template}". Valid templates: ${validTemplates.join(', ')}`);
+      const templateError = validateTemplate(args.template);
+      if (templateError) {
+        console.error(`Error: ${templateError}`);
         process.exit(1);
       }
       selectedTemplate = args.template;
@@ -111,14 +126,12 @@ EXAMPLES:
     // Determine version (flag or prompt)
     let selectedVersion;
     if (args.version) {
-      if (args.version === 'latest') {
-        selectedVersion = latest;
-      } else if (!versions.includes(args.version)) {
-        console.error(`Error: Version "${args.version}" not found. Use "latest" or a specific version like "2.1.1"`);
+      const versionError = validateVersion(args.version, versions, latest);
+      if (versionError) {
+        console.error(`Error: ${versionError}`);
         process.exit(1);
-      } else {
-        selectedVersion = args.version;
       }
+      selectedVersion = args.version === 'latest' ? latest : args.version;
       console.log(`Using p5.js version: ${selectedVersion}`);
     } else if (args.yes) {
       selectedVersion = latest;
@@ -130,9 +143,9 @@ EXAMPLES:
     // Determine delivery mode (flag or prompt)
     let selectedMode;
     if (args.mode) {
-      const validModes = ['cdn', 'local'];
-      if (!validModes.includes(args.mode)) {
-        console.error(`Error: Invalid mode "${args.mode}". Valid modes: ${validModes.join(', ')}`);
+      const modeError = validateMode(args.mode);
+      if (modeError) {
+        console.error(`Error: ${modeError}`);
         process.exit(1);
       }
       selectedMode = args.mode;
@@ -158,16 +171,6 @@ EXAMPLES:
 
     // Set up paths based on selected template
     const templatePath = path.join(__dirname, 'templates', selectedTemplate);
-    const targetPath = path.join(process.cwd(), projectName);
-
-    // Check if directory already exists
-    try {
-      await fs.access(targetPath);
-      console.error(`Error: Directory "${projectName}" already exists.`);
-      process.exit(1);
-    } catch {
-      // Directory doesn't exist, continue
-    }
 
     // Copy template files
     await copyTemplateFiles(templatePath, targetPath);
