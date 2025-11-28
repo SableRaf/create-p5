@@ -428,9 +428,115 @@ Stage 5 is complete and working. Users can now:
 
 ## Stage 6: Update Existing Projects
 
-**Status:** PENDING
-**Goal:** Support version updates and mode switching
+**Status:** COMPLETE
+**Date:** 2025-11-28
 **Time:** 5-6 hours, 4 commits
+
+### Commits
+
+1. **feat: create update command routing** (`3b6e122`)
+   - Created `src/update.js` with main `update()` function
+   - Detect existing project by reading p5-config.json
+   - Route to update workflow when 'update' command is used
+   - Display current project state (version, mode, template, typeDefs, lastUpdated)
+   - Added interactive menu to select update action (version/mode/cancel)
+   - Integrated update routing into index.js entry point
+   - Created `src/cli.js` for CLI routing logic
+
+2. **feat: implement version update** (`43619d6`)
+   - Added `updateVersion()` function to src/update.js
+   - Fetch available versions from jsdelivr API
+   - Let user select new version interactively
+   - CDN mode: Update script tag in index.html with new version
+   - Local mode: Re-download p5.js files + update script tag
+   - Update TypeScript definitions to match new version
+   - Update p5-config.json with new version and timestamp
+   - Show success message with old/new version info
+
+3. **feat: implement mode switching** (`7e7d3ed`)
+   - Added `switchMode()` function to src/update.js
+   - CDN → Local: Download p5.js files, update script tag, update .gitignore
+   - Local → CDN: Update script tag, prompt user to delete lib/ directory
+   - Update p5-config.json mode field after switching
+   - Show success message with old/new mode info
+   - Gracefully handle missing .gitignore file
+
+4. **feat: add HTML script tag updating with multi-CDN support** (`4e79f94`)
+   - Added `findP5Script()` to detect existing p5.js script tags from any CDN
+   - Support jsdelivr, cdnjs, and unpkg CDN providers
+   - Added `detectCDN()` to identify which CDN is currently in use
+   - Added `buildScriptURL()` to construct URLs preserving user preferences
+   - Preserve minification preference (p5.js vs p5.min.js) during updates
+   - Preserve CDN choice during version updates
+   - Implemented three-tier strategy: update existing → replace marker → insert in head
+   - Use regex patterns to match p5.js scripts from multiple CDN sources
+
+### Checkpoint Verification
+
+**Test Results:**
+- Update command routing works correctly
+- Current project state displays accurately
+- Version update works for both CDN and local modes
+- Mode switching works bidirectionally (CDN ↔ Local)
+- HTML script tag detection works for multiple CDN providers
+- User preferences (minification, CDN choice) are preserved
+- p5-config.json updates correctly with new version and timestamp
+- .gitignore handling works for mode switches
+
+**Update Command Usage:**
+```bash
+# In existing project directory
+npx create-p5 update
+```
+
+**Update Menu:**
+```
+Current project configuration:
+  p5.js version: 2.1.1
+  Delivery mode: cdn
+  Template: basic
+  TypeScript definitions: 2.1.1
+  Last updated: 2025-11-28T18:30:45.123Z
+
+What would you like to update?
+  ○ Update p5.js version
+  ○ Switch delivery mode
+  ○ Cancel
+```
+
+**Three-Tier Strategy:**
+1. **Update existing p5.js script** - Detects and updates existing p5.js script tags from any CDN provider
+2. **Replace marker comment** - Replaces `<!-- P5JS_SCRIPT_TAG -->` marker with actual script tag
+3. **Insert into head** - If no script or marker found, inserts script tag at beginning of `<head>`
+
+**Multi-CDN Support:**
+- jsdelivr: `https://cdn.jsdelivr.net/npm/p5@{version}/lib/p5.js`
+- cdnjs: `https://cdnjs.cloudflare.com/ajax/libs/p5.js/{version}/p5.js`
+- unpkg: `https://unpkg.com/p5@{version}/lib/p5.js`
+- Local: `./lib/p5.js`
+
+### Demo-able Features
+
+- Running `npx create-p5 update` in existing project shows current state
+- Users can update to any available p5.js version
+- Users can switch between CDN and local delivery modes
+- Script tags are updated while preserving user preferences:
+  - Minification preference (p5.js vs p5.min.js)
+  - CDN provider choice (jsdelivr, cdnjs, unpkg)
+- TypeScript definitions automatically updated to match new version
+- Config file tracks all changes with timestamps
+- Helpful prompts guide users through update process
+
+### Ship It! 🚢
+
+Stage 6 is complete and working. Users can now:
+- Update p5.js version in existing projects
+- Switch delivery modes between CDN and local
+- Preserve their preferences (minification, CDN choice) during updates
+- Use any CDN provider (jsdelivr, cdnjs, unpkg) seamlessly
+- Track project history through updated timestamps in config
+
+**Ready to proceed to Stage 7: Non-Interactive Mode and Git Integration**
 
 ---
 
