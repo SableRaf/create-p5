@@ -141,3 +141,4 @@ dist
 # Test artifacts
 test-*.js
 test-sketch-*/
+my-sketch-*/
