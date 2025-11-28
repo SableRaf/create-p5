@@ -38,3 +38,35 @@ export async function downloadP5Files(version, targetDir) {
     await writeFile(targetPath, content, 'utf-8');
   }
 }
+
+/**
+ * Downloads TypeScript type definitions for p5.js from jsdelivr CDN.
+ * Falls back to the latest version if the specified version's types are not found.
+ * @param {string} version - The p5.js version to download type definitions for
+ * @param {string} targetDir - The directory path where type definitions should be saved
+ * @returns {Promise<string>} The actual version of the type definitions downloaded
+ */
+export async function downloadTypeDefinitions(version, targetDir) {
+  const cdnBase = 'https://cdn.jsdelivr.net/npm';
+  const typeUrl = `${cdnBase}/p5@${version}/types/global.d.ts`;
+
+  // Try to download the exact version first
+  let response = await fetch(typeUrl);
+  let actualVersion = version;
+
+  // If not found, fallback to latest p5.js version
+  if (!response.ok) {
+    const { latest } = await fetchVersions();
+    const latestTypeUrl = `${cdnBase}/p5@${latest}/types/global.d.ts`;
+    response = await fetch(latestTypeUrl);
+    actualVersion = latest;
+  }
+
+  if (response.ok) {
+    const content = await response.text();
+    const targetPath = `${targetDir}/global.d.ts`;
+    await writeFile(targetPath, content, 'utf-8');
+  }
+
+  return actualVersion;
+}
