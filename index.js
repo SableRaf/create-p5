@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 import minimist from 'minimist';
 import { copyTemplateFiles } from './src/utils.js';
-import { fetchVersions } from './src/version.js';
+import { fetchVersions, downloadP5Files } from './src/version.js';
 import { selectVersion, selectMode } from './src/prompts.js';
 import { injectP5Script } from './src/template.js';
 import { createConfig, configExists } from './src/config.js';
@@ -61,6 +61,18 @@ async function main() {
 
     // Copy template files
     await copyTemplateFiles(templatePath, targetPath);
+
+    // If local mode, create lib directory and download p5.js files
+    if (selectedMode === 'local') {
+      const libPath = path.join(targetPath, 'lib');
+      await fs.mkdir(libPath, { recursive: true });
+      await downloadP5Files(selectedVersion, libPath);
+
+      // Update .gitignore to exclude lib/ directory in local mode
+      const gitignorePath = path.join(targetPath, '.gitignore');
+      const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
+      await fs.writeFile(gitignorePath, gitignoreContent + '\n# Local p5.js files\nlib/\n', 'utf-8');
+    }
 
     // Inject p5.js script tag into index.html
     const indexPath = path.join(targetPath, 'index.html');
