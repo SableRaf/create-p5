@@ -872,7 +872,8 @@ canvas {
 ```json
 {
   "compilerOptions": {
-    "target": "ES6"
+    "target": "ES6",
+    "checkJs": false
   },
   "include": [
     "*.js",
