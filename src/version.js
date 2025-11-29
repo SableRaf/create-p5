@@ -104,22 +104,28 @@ export async function downloadP5Files(version, targetDir, spinner = null) {
 
 /**
  * Downloads TypeScript type definitions for p5.js from jsdelivr CDN.
- * Downloads both global.d.ts and p5.d.ts as global.d.ts imports from p5.d.ts.
+ * For instance-mode sketches, downloads only p5.d.ts.
+ * For global-mode sketches, downloads both global.d.ts and p5.d.ts.
  * Falls back to the latest version if the specified version's types are not found.
  * @param {string} version - The p5.js version to download type definitions for
  * @param {string} targetDir - The directory path where type definitions should be saved
  * @param {Object} [spinner] - Optional spinner object with stop() method for progress feedback
+ * @param {string} [template] - The template being used ('instance', 'basic', 'typescript', 'empty')
  * @returns {Promise<string>} The actual version of the type definitions downloaded
  * @throws {Error} If download fails or files cannot be written
  */
-export async function downloadTypeDefinitions(version, targetDir, spinner = null) {
+export async function downloadTypeDefinitions(version, targetDir, spinner = null, template = null) {
   const cdnBase = 'https://cdn.jsdelivr.net/npm';
 
-  // Define both files that need to be downloaded
-  const typeFiles = [
-    { name: 'global.d.ts', url: `${cdnBase}/p5@${version}/types/global.d.ts` },
-    { name: 'p5.d.ts', url: `${cdnBase}/p5@${version}/types/p5.d.ts` }
-  ];
+  // Determine which files to download based on template
+  // Instance mode only needs p5.d.ts, global mode needs both
+  const isInstanceMode = template === 'instance';
+  const typeFiles = isInstanceMode
+    ? [{ name: 'p5.d.ts', url: `${cdnBase}/p5@${version}/types/p5.d.ts` }]
+    : [
+        { name: 'global.d.ts', url: `${cdnBase}/p5@${version}/types/global.d.ts` },
+        { name: 'p5.d.ts', url: `${cdnBase}/p5@${version}/types/p5.d.ts` }
+      ];
 
   try {
     if (spinner) {

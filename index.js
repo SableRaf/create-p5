@@ -358,9 +358,9 @@ EXAMPLES:
       try {
         if (args.verbose) {
           const typesSpinner = startSpinner('Downloading TypeScript definitions');
-          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, typesSpinner);
+          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, typesSpinner, selectedTemplate);
         } else {
-          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath);
+          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, null, selectedTemplate);
         }
       } catch (error) {
         p.log.warn(error.message);
