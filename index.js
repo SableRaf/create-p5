@@ -26,7 +26,7 @@ const __dirname = path.dirname(__filename);
 async function main() {
   // Parse command line arguments
   const args = minimist(process.argv.slice(2), {
-    boolean: ['yes', 'git', 'no-types', 'help', 'verbose'],
+    boolean: ['yes', 'git', 'no-types', 'help', 'verbose', 'include-prerelease'],
     string: ['template', 'version', 'mode'],
     alias: {
       y: 'yes',
@@ -34,7 +34,8 @@ async function main() {
       t: 'template',
       v: 'version',
       m: 'mode',
-      h: 'help'
+      h: 'help',
+      p: 'include-prerelease'
     }
   });
 
@@ -56,6 +57,7 @@ OPTIONS:
   -m, --mode <mode>        Delivery mode (cdn or local)
   -g, --git                Initialize git repository
   -y, --yes                Skip prompts and use defaults
+  -p, --include-prerelease Include pre-release versions (RC, beta, alpha)
       --no-types           Skip TypeScript definitions download
       --verbose            Show detailed logging
   -h, --help               Show this help message
@@ -64,6 +66,7 @@ EXAMPLES:
   npm create p5@latest my-sketch
   npm create p5@latest my-sketch -- --template typescript --mode cdn --git
   npm create p5@latest -- --yes
+  npm create p5@latest -- --include-prerelease
   npx create-p5 update
 `);
     process.exit(0);
