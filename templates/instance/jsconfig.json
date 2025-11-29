@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ES6"
+    "target": "ES6",
+    "checkJs": false // Enable type checking for JavaScript files
   },
   "include": [
     "*.js",
