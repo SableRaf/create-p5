@@ -20,7 +20,8 @@
   "license": "LGPL-2.1",
   "scripts": {
     "test": "vitest",
-    "test:coverage": "vitest --coverage --run"
+    "test:coverage": "vitest --coverage --run",
+    "run": "node ./index.js"
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",
