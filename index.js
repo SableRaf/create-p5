@@ -119,8 +119,11 @@ EXAMPLES:
     s.start('Fetching p5.js versions');
     let latest, versions;
     try {
-      ({ latest, versions } = await fetchVersions());
+      ({ latest, versions } = await fetchVersions(args['include-prerelease']));
       s.stop(green('✓') + ' Fetched available versions');
+      if (args['include-prerelease']) {
+        p.log.info('Including pre-release versions (RC, beta, alpha)');
+      }
     } catch (error) {
       s.stop(red('✗') + ' Failed to fetch versions');
       p.log.message('');
