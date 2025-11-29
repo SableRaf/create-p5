@@ -89,7 +89,7 @@ Uses `linkedom` for proper DOM parsing and manipulation (not regex-based string 
 The HTMLManager detects existing CDN providers and preserves them during updates.
 
 ### 4. Version Management
-The `version.js` module (VersionProvider in proof_of_concept):
+The `version.js` module:
 - Fetches available p5.js versions from `https://data.jsdelivr.com/v1/package/npm/p5` (note: singular "package")
 - Latest version accessed via `data.tags.latest`
 - All versions accessed via `data.versions` array
@@ -170,17 +170,6 @@ Created during scaffolding, used by update commands. Stores minimal metadata abo
 - **Minimum**: Node.js 18.0.0+ (for native fetch API and modern ESM support)
 - **Package Managers**: npm 7+, yarn 1.22+, pnpm 8+, bun 1.0+
 
-## Proof of Concept Architecture
-
-The `proof_of_concept/` directory contains validated implementations of core functionality, demonstrating key architectural patterns:
-
-### Module Organization
-Files are organized by domain responsibility:
-- **api/** - External API integrations (jsdelivr CDN)
-- **config/** - Configuration file management
-- **file/** - File system operations and HTML manipulation
-- **ui/** - User interaction and prompts
-
 ### Key Architectural Patterns
 
 #### 1. Dependency Injection
@@ -212,8 +201,6 @@ HTMLManager uses linkedom's DOM API (not regex) for reliable HTML manipulation:
 HTMLManager uses regex patterns to detect p5.js script tags from multiple CDN providers, enabling seamless updates regardless of how the project was originally created.
 
 ### HTMLManager Implementation Details
-
-The HTMLManager in proof_of_concept demonstrates the robust approach to HTML manipulation:
 
 **Script Tag Detection Patterns:**
 ```javascript
