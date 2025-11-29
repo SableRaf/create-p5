@@ -3,6 +3,7 @@
  */
 
 import path from 'path';
+import minimist from 'minimist';
 import { readConfig, createConfig } from './config.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from './version.js';
 import { selectVersion } from './prompts.js';
@@ -17,6 +18,14 @@ import { createDirectory, readFile, writeFile, fileExists, removeDirectory } fro
  * @returns {Promise<void>}
  */
 export async function update(projectDir = process.cwd()) {
+  // Parse CLI arguments for options
+  const args = minimist(process.argv.slice(2), {
+    boolean: ['include-prerelease'],
+    alias: {
+      p: 'include-prerelease'
+    }
+  });
+
   const configPath = path.join(projectDir, 'p5-config.json');
 
   // Read existing configuration
@@ -67,7 +76,7 @@ export async function update(projectDir = process.cwd()) {
 
   // Route to appropriate update function
   if (action === 'version') {
-    await updateVersion(projectDir, config);
+    await updateVersion(projectDir, config, { includePrerelease: args['include-prerelease'] });
   } else if (action === 'mode') {
     await switchMode(projectDir, config);
   }
@@ -78,12 +87,20 @@ export async function update(projectDir = process.cwd()) {
  * Handles both CDN and local delivery modes
  * @param {string} projectDir - The directory of the project to update
  * @param {Object} config - Current project configuration from p5-config.json
+ * @param {Object} [options={}] - Update options
+ * @param {boolean} [options.includePrerelease=false] - Whether to include pre-release versions
  * @returns {Promise<void>}
  */
-async function updateVersion(projectDir, config) {
+async function updateVersion(projectDir, config, options = {}) {
+  const { includePrerelease = false } = options;
+
   // Fetch available versions
   console.log('Fetching p5.js versions...');
-  const { latest, versions } = await fetchVersions();
+  const { latest, versions } = await fetchVersions(includePrerelease);
+
+  if (includePrerelease) {
+    console.log('Including pre-release versions (RC, beta, alpha)');
+  }
 
   // Let user select new version
   const newVersion = await selectVersion(versions, latest);
