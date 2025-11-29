@@ -1,11 +1,30 @@
 import { writeFile } from './utils.js';
 
 /**
+ * Checks if a version string is a stable release (semver compliant: X.Y.Z)
+ * @param {string} version - Version string to check (e.g., "1.9.0" or "2.1.0-rc.1")
+ * @returns {boolean} True if version is stable (no pre-release suffix), false otherwise
+ */
+export function isStableVersion(version) {
+  return /^\d+\.\d+\.\d+$/.test(version);
+}
+
+/**
+ * Filters an array of version strings to include only stable releases
+ * @param {string[]} versions - Array of version strings to filter
+ * @returns {string[]} Array containing only stable version strings (X.Y.Z format)
+ */
+export function filterStableVersions(versions) {
+  return versions.filter(isStableVersion);
+}
+
+/**
  * Fetches available p5.js versions from jsdelivr CDN API
+ * @param {boolean} [includePrerelease=false] - Whether to include pre-release versions (RC, beta, alpha)
  * @returns {Promise<{ latest: string, versions: string[] }>} Object containing latest version and array of up to 15 most recent versions
  * @throws {Error} If network request fails or API is unreachable
  */
-export async function fetchVersions() {
+export async function fetchVersions(includePrerelease = false) {
   const apiUrl = 'https://data.jsdelivr.com/v1/package/npm/p5';
 
   try {
@@ -18,7 +37,15 @@ export async function fetchVersions() {
     const data = await response.json();
 
     const latest = data.tags.latest;
-    const versions = data.versions.slice(0, 15); // Limit to 15 most recent
+
+    // Filter versions based on includePrerelease flag
+    let versions = data.versions;
+    if (!includePrerelease) {
+      versions = filterStableVersions(versions);
+    }
+
+    // Limit to 15 most recent versions AFTER filtering
+    versions = versions.slice(0, 15);
 
     return { latest, versions };
   } catch (error) {
