@@ -131,7 +131,7 @@ async function updateVersion(projectDir, config, options = {}) {
   // Update TypeScript definitions
   const typesPath = path.join(projectDir, 'types');
   await createDirectory(typesPath);
-  const typeDefsVersion = await downloadTypeDefinitions(newVersion, typesPath);
+  const typeDefsVersion = await downloadTypeDefinitions(newVersion, typesPath, null, config.template);
   console.log(`✓ Updated TypeScript definitions to version ${typeDefsVersion}`);
 
   // Update p5-config.json

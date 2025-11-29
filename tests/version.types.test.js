@@ -46,10 +46,64 @@ describe('downloadTypeDefinitions fallback', () => {
     const actual = await downloadTypeDefinitions('0.0.1', tmpDir);
     expect(actual).toBe('1.9.0');
 
-    const fileExists = await fs.stat(path.join(tmpDir, 'global.d.ts'))
+    // Verify both global.d.ts and p5.d.ts are downloaded for global mode (default)
+    const globalFileExists = await fs.stat(path.join(tmpDir, 'global.d.ts'))
       .then(() => true)
       .catch(() => false);
 
-    expect(fileExists).toBe(true);
+    const p5FileExists = await fs.stat(path.join(tmpDir, 'p5.d.ts'))
+      .then(() => true)
+      .catch(() => false);
+
+    expect(globalFileExists).toBe(true);
+    expect(p5FileExists).toBe(true);
+  });
+
+  it('downloads only p5.d.ts for instance mode template', async () => {
+    globalThis.fetch = async (url) => {
+      return {
+        ok: true,
+        text: async () => '// dummy types'
+      };
+    };
+
+    const actual = await downloadTypeDefinitions('1.9.0', tmpDir, null, 'instance');
+    expect(actual).toBe('1.9.0');
+
+    // Verify only p5.d.ts is downloaded for instance mode
+    const globalFileExists = await fs.stat(path.join(tmpDir, 'global.d.ts'))
+      .then(() => true)
+      .catch(() => false);
+
+    const p5FileExists = await fs.stat(path.join(tmpDir, 'p5.d.ts'))
+      .then(() => true)
+      .catch(() => false);
+
+    expect(globalFileExists).toBe(false);
+    expect(p5FileExists).toBe(true);
+  });
+
+  it('downloads both files for basic template', async () => {
+    globalThis.fetch = async (url) => {
+      return {
+        ok: true,
+        text: async () => '// dummy types'
+      };
+    };
+
+    const actual = await downloadTypeDefinitions('1.9.0', tmpDir, null, 'basic');
+    expect(actual).toBe('1.9.0');
+
+    // Verify both files are downloaded for basic (global mode) template
+    const globalFileExists = await fs.stat(path.join(tmpDir, 'global.d.ts'))
+      .then(() => true)
+      .catch(() => false);
+
+    const p5FileExists = await fs.stat(path.join(tmpDir, 'p5.d.ts'))
+      .then(() => true)
+      .catch(() => false);
+
+    expect(globalFileExists).toBe(true);
+    expect(p5FileExists).toBe(true);
   });
 });
