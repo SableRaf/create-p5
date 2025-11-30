@@ -13,5 +13,14 @@ window.draw = function draw(): void {
 };
 
 window.mousePressed = function mousePressed() {
+    fill(randomColour());
     circle(mouseX, mouseY, random(10, 30));
 };
+
+function randomColour(): p5.Color {
+    push();
+    colorMode(HSB);
+    const generatedColour = color(random(360), 70, 100);
+    pop();
+    return generatedColour;
+}
