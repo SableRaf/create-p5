@@ -104,23 +104,24 @@ describe('fetchVersions', () => {
     expect(result.versions).toContain('2.1.0-rc.3');
   });
 
-  it('limits to 15 versions after filtering', async () => {
-    // Create 20 stable versions
-    const manyVersions = Array.from({ length: 20 }, (_, i) => `${20 - i}.0.0`);
+  it('returns long list of versions without limits', async () => {
+    // Create 999 stable versions
+    const manyVersions = Array.from({ length: 999 }, (_, i) => `${999 - i}.0.0`);
 
     globalThis.fetch = async () => ({
       ok: true,
       json: async () => ({
-        tags: { latest: '20.0.0' },
+        tags: { latest: '999.0.0' },
         versions: manyVersions
       })
     });
 
     const result = await fetchVersions();
-    expect(result.versions.length).toBe(15);
+    expect(result.versions.length).toBe(999);
+    expect(result.versions).toEqual(manyVersions);
   });
 
-  it('limits to 15 versions after filtering when includePrerelease is false', async () => {
+  it('returns all stable versions when includePrerelease is false', async () => {
     // Create 20 versions: 10 stable + 10 pre-release
     const manyVersions = [
       ...Array.from({ length: 10 }, (_, i) => `${20 - i}.0.0`),
@@ -140,5 +141,74 @@ describe('fetchVersions', () => {
     expect(result.versions.length).toBe(10);
     // Verify none are pre-release
     expect(result.versions.every(v => isStableVersion(v))).toBe(true);
+  });
+
+  // Handle other pre-release labels as well (e.g. -beta, -alpha, -beta.1, etc.)
+  it('excludes unusual prerelease tags when includePrerelease is false', async () => {
+    const versionsWithVariousLabels = [
+      '2.1.0',
+      '2.1.0-beta',
+      '2.1.0-beta.1',
+      '2.1.0-alpha',
+      '2.1.0-alpha.2',
+      '2.0.0-rc.1',
+      '2.0.0',
+      '1.9.0-dev',
+      '1.9.0-next.3',
+      '1.8.0'
+    ];
+
+    globalThis.fetch = async () => ({
+      ok: true,
+      json: async () => ({
+        tags: { latest: '2.1.0' },
+        versions: versionsWithVariousLabels
+      })
+    });
+
+    const result = await fetchVersions(false);
+    // Should only have stable versions (2.1.0, 2.0.0, 1.8.0)
+    expect(result.versions).toEqual(['2.1.0', '2.0.0', '1.8.0']);
+    expect(result.versions).not.toContain('2.1.0-beta');
+    expect(result.versions).not.toContain('2.1.0-beta.1');
+    expect(result.versions).not.toContain('2.1.0-alpha');
+    expect(result.versions).not.toContain('2.1.0-alpha.2');
+    expect(result.versions).not.toContain('2.0.0-rc.1');
+    expect(result.versions).not.toContain('1.9.0-dev');
+    expect(result.versions).not.toContain('1.9.0-next.3');
+  });
+
+  it('includes unusual prerelease tags when includePrerelease is true', async () => {
+    const versionsWithVariousLabels = [
+      '2.1.0',
+      '2.1.0-beta',
+      '2.1.0-beta.1',
+      '2.1.0-alpha',
+      '2.1.0-alpha.2',
+      '2.0.0-rc.1',
+      '2.0.0',
+      '1.9.0-dev',
+      '1.9.0-next.3',
+      '1.8.0'
+    ];
+
+    globalThis.fetch = async () => ({
+      ok: true,
+      json: async () => ({
+        tags: { latest: '2.1.0' },
+        versions: versionsWithVariousLabels
+      })
+    });
+
+    const result = await fetchVersions(true);
+    // Should include all versions (stable and pre-release)
+    expect(result.versions).toEqual(versionsWithVariousLabels);
+    expect(result.versions).toContain('2.1.0-beta');
+    expect(result.versions).toContain('2.1.0-beta.1');
+    expect(result.versions).toContain('2.1.0-alpha');
+    expect(result.versions).toContain('2.1.0-alpha.2');
+    expect(result.versions).toContain('2.0.0-rc.1');
+    expect(result.versions).toContain('1.9.0-dev');
+    expect(result.versions).toContain('1.9.0-next.3');
   });
 });
