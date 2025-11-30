@@ -135,6 +135,10 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# System Files
+.DS_Store
+Thumbs.db
+
 # Claude Code
 .claude/
 
