@@ -74,7 +74,7 @@ This implementation plan follows incremental development principles to build `cr
 
 ### Commit 3: Inject selected version into template
 **What:** Update HTML with chosen p5.js version
-- Create `src/template.js` with `injectP5Script()` function
+- Create `src/htmlManager.js` with `injectP5Script()` function
 - Use `linkedom` to parse HTML and manipulate DOM
 - Replace `<!-- P5JS_SCRIPT_TAG -->` marker with actual script tag
 - Build CDN URL: `https://cdn.jsdelivr.net/npm/p5@{version}/lib/p5.js`
@@ -132,7 +132,7 @@ This implementation plan follows incremental development principles to build `cr
 
 ### Commit 3: Update HTML manipulation for modes
 **What:** Inject correct script path based on mode
-- Update `injectP5Script()` in `src/template.js` to accept mode parameter
+- Update `injectP5Script()` in `src/htmlManager.js` to accept mode parameter
 - CDN mode: Use `https://cdn.jsdelivr.net/npm/p5@{version}/lib/p5.js`
 - Local mode: Use `./lib/p5.js`
 - Update config to store selected mode
@@ -211,7 +211,7 @@ This implementation plan follows incremental development principles to build `cr
 
 ### Commit 4: Add HTML script tag updating
 **What:** Reliably detect and update existing p5.js script tags
-- Add `updateP5Script(htmlPath, version, mode)` to `src/template.js`
+- Add `updateP5Script(htmlPath, version, mode)` to `src/htmlManager.js`
 - Detect existing p5.js script from any CDN (jsdelivr, cdnjs, unpkg)
 - Preserve user preferences (minification, CDN choice)
 - Use three-tier strategy: update existing → replace marker → insert in head
@@ -308,7 +308,7 @@ This implementation plan follows incremental development principles to build `cr
 
 ### Commit 3: Abstract HTML manipulation
 **What:** Create HTMLManager class for DOM operations
-- Move all linkedom operations to `src/template.js`
+- Move all linkedom operations to `src/htmlManager.js`
 - Create `HTMLManager` class with methods: `parse()`, `serialize()`, `findP5Script()`, `updateP5Script()`
 - Implement multi-CDN detection patterns
 - Ensure all tests still pass

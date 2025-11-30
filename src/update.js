@@ -7,7 +7,7 @@ import minimist from 'minimist';
 import { readConfig, createConfig } from './config.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from './version.js';
 import { selectVersion } from './prompts.js';
-import { injectP5Script } from './template.js';
+import { injectP5Script } from './htmlManager.js';
 import * as p from '@clack/prompts';
 import { createDirectory, readFile, writeFile, fileExists, removeDirectory } from './utils.js';
 

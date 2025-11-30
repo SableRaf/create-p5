@@ -89,7 +89,7 @@ Stage 1 proof of concept is complete and working. The tool can scaffold basic p5
    - Returns selected version string
 
 3. **feat: inject selected version into template** (`1468995`)
-   - Created `src/template.js` with `injectP5Script()` function
+   - Created `src/htmlManager.js` with `injectP5Script()` function
    - Uses `linkedom` for proper DOM parsing and manipulation
    - Implements two-tier strategy:
      1. Replace `<!-- P5JS_SCRIPT_TAG -->` marker comment
@@ -233,7 +233,7 @@ Stage 3 is complete and working. New projects now have:
    - Uses native fetch API for downloads
 
 3. **feat: update HTML manipulation for modes** (`b61f811`)
-   - Updated `injectP5Script()` in `src/template.js` to accept mode parameter
+   - Updated `injectP5Script()` in `src/htmlManager.js` to accept mode parameter
    - Mode parameter defaults to 'cdn' for backward compatibility
    - CDN mode: Uses `https://cdn.jsdelivr.net/npm/p5@{version}/lib/p5.js`
    - Local mode: Uses `./lib/p5.js` (relative path)
@@ -833,7 +833,7 @@ This may be a library issue with `@clack/prompts` or `kolorist`. Further investi
    - Returned a structured options object (`{ template, mode, version }`) to reduce duplication in CLI routing
    - Kept existing individual prompt functions for backward compatibility
 
-3. **refactor: abstract HTML manipulation into `HTMLManager` (`src/template.js`)**
+3. **refactor: abstract HTML manipulation into `HTMLManager` (`src/htmlManager.js`)**
    - Encapsulated `linkedom` operations in an `HTMLManager` class with `findP5Script()`, `updateP5Script()`, and `serialize()` methods
    - Preserved multi-CDN detection, marker replacement, and insert-into-head strategies
    - Exported a small `injectP5Script()` wrapper for backwards compatibility with the existing API
@@ -865,12 +865,12 @@ Stage 9 refactor is complete. The codebase is more maintainable and prepared for
 **Time:** 4-5 hours estimated; work in progress across multiple small commits
 
 ### Work completed so far
-- **JSDoc:** Added comprehensive JSDoc comments to core modules (`src/template.js` and others updated). 
+- **JSDoc:** Added comprehensive JSDoc comments to core modules (`src/htmlManager.js` and others updated). 
 - **Testing framework:** Added `vitest` to `devDependencies` and `test`/`test:coverage` scripts to `package.json`.
 - **Unit tests:** Added a test suite under `tests/` covering:
    - `version.test.js`, `version.types.test.js`, `version.download.test.js` (version provider)
    - `config.test.js` (config manager)
-   - `template.test.js`, `template-advanced.test.js` (HTMLManager / template injection)
+   - `htmlManager.test.js`, `htmlManager-advanced.test.js` (HTMLManager / template injection)
    - `utils.test.js` (validation and utils)
    - `cli.test.js`, `git.test.js`, `update.test.js` (CLI, git helpers, update workflow edge cases)
 - **Documentation:** Updated `README.md` with testing instructions.
@@ -882,7 +882,7 @@ Stage 9 refactor is complete. The codebase is more maintainable and prepared for
    - All files (project): **32.19% statements**
    - `create-p5/src` (core modules): **63% statements**
    - Notable per-file coverage:
-      - Good: `cli.js` (100%), `template.js` (~90%), `version.js` (~82%), `utils.js` (~78%)
+      - Good: `cli.js` (100%), `htmlManager.js` (~90%), `version.js` (~82%), `utils.js` (~78%)
       - Low: `update.js` (~22%), `git.js` (~44%), `prompts.js` (~33%)
 
 ### Remaining work (to meet Stage 10 goal >80% coverage)

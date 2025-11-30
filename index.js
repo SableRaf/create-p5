@@ -14,7 +14,7 @@ import { green, red, blue, cyan, bgBlue, bgMagenta, white } from 'kolorist';
 import { copyTemplateFiles, validateProjectName, directoryExists, validateTemplate, validateMode, validateVersion } from './src/utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from './src/version.js';
 import { selectVersion, selectMode, selectTemplate, promptProjectPath, startSpinner, generateProjectName } from './src/prompts.js';
-import { injectP5Script } from './src/template.js';
+import { injectP5Script } from './src/htmlManager.js';
 import { createConfig, configExists } from './src/config.js';
 import { update } from './src/update.js';
 import { initGit, addLibToGitignore } from './src/git.js';

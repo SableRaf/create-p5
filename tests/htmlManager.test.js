@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { HTMLManager } from '../src/template.js';
+import { injectP5Script } from '../src/htmlManager.js';
+import { HTMLManager } from '../src/htmlManager.js';
+
+const baseHtml = `<!doctype html>
+<html>
+<head>
+  <!-- P5JS_SCRIPT_TAG -->
+  <meta charset="utf-8">
+</head>
+<body>
+  <script src="sketch.js"></script>
+</body>
+</html>`;
 
 const htmlWithCdn = `<!doctype html>
 <html>
@@ -16,6 +28,19 @@ const htmlWithLocal = `<!doctype html>
 </head>
 <body></body>
 </html>`;
+
+describe('injectP5Script', () => {
+  it('replaces marker with CDN script tag', () => {
+    const out = injectP5Script(baseHtml, '1.9.0', 'cdn');
+    expect(out).toMatch(/cdn\.jsdelivr\.net/);
+    expect(out).toMatch(/p5@1.9.0/);
+  });
+
+  it('inserts local script when mode is local', () => {
+    const out = injectP5Script(baseHtml, '1.9.0', 'local');
+    expect(out).toMatch(/\.\/lib\/p5\.js/);
+  });
+});
 
 describe('HTMLManager advanced detection and updates', () => {
   it('detects jsdelivr CDN and minified flag', () => {

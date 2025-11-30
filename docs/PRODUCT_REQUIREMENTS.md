@@ -572,7 +572,7 @@ create-p5/
 │   ├── prompts.js          # Interactive prompts
 │   ├── config.js           # p5-config.json management
 │   ├── version.js          # Version fetching from jsdelivr
-│   ├── template.js         # Template operations
+│   ├── htmlManager.js      # HTML manipulation and script tag injection
 │   ├── git.js              # Git operations
 │   └── utils.js            # Utilities (logging, validation, etc.)
 ├── templates/
