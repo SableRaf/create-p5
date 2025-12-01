@@ -37,9 +37,9 @@
   "note.update.currentConfig.lastUpdated": "Last updated: {timestamp}",
 
   "note.update.versionSummary.title": "Version updated successfully!",
-  "note.update.versionSummary.oldVersion": "Old version: {version}",
-  "note.update.versionSummary.newVersion": "New version: {version}",
-  "note.update.versionSummary.types": "TypeScript definitions: {version}",
+  "note.update.versionSummary.oldVersion": "Old version: {oldVersion}",
+  "note.update.versionSummary.newVersion": "New version: {newVersion}",
+  "note.update.versionSummary.types": "TypeScript definitions: {types}",
 
   "note.success.created": "✓ Project created successfully!",
   "note.success.failed": "✗ Project creation failed",

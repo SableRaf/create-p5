@@ -152,7 +152,8 @@ async function updateVersion(projectDir, config, options = {}) {
     'note.update.versionSummary.types'
   ];
   display.note(summaryLines, 'note.update.versionSummary.title', {
-    version: newVersion,
+    oldVersion: config.version,
+    newVersion: newVersion,
     types: typeDefsVersion
   });
 }
