@@ -7,7 +7,6 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
-import { uniqueNamesGenerator, adjectives, colors, animals } from 'unique-names-generator';
 
 // i18n
 import { t } from '../i18n/index.js';
@@ -17,7 +16,7 @@ import * as display from '../ui/display.js';
 import * as prompts from '../ui/prompts.js';
 
 // Business utilities
-import { copyTemplateFiles, validateProjectName, directoryExists, validateTemplate, validateMode, validateVersion } from '../utils.js';
+import { copyTemplateFiles, validateProjectName, directoryExists, validateTemplate, validateMode, validateVersion, generateProjectName } from '../utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
 import { createConfig } from '../config.js';
@@ -26,21 +25,6 @@ import { isRemoteTemplateSpec, normalizeTemplateSpec, fetchTemplate } from '../t
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-/**
- * Generate a random project name using adjectives and animals
- * TODO: This will be moved to utils.js in a later commit
- * @returns {string} A random project name (e.g., 'brave-elephant')
- */
-function generateProjectName() {
-  const useColor = Math.random() < 0.5;
-  const config = {
-    dictionaries: useColor ? [colors, animals] : [adjectives, animals],
-    separator: '-',
-    style: 'lowerCase'
-  };
-  return uniqueNamesGenerator(config);
-}
 
 /**
  * Main scaffolding function
