@@ -8,7 +8,7 @@
 import path from 'path';
 import minimist from 'minimist';
 import { scaffold } from './src/operations/scaffold.js';
-import { update } from './src/update.js';
+import { update } from './src/operations/update.js';
 import { configExists } from './src/config.js';
 import { t } from './src/i18n/index.js';
 import * as display from './src/ui/display.js';
