@@ -16,11 +16,12 @@ export function intro() {
 }
 
 /**
- * Show outro message
+ * Show outro message and exit
  * @param {string} message - The outro message (already translated)
  */
 export function outro(message) {
   p.outro(message);
+  process.exit(0);
 }
 
 /**
