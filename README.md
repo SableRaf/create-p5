@@ -109,7 +109,9 @@ This project builds upon the work of the p5.js community.  Thanks to all contrib
 - The create-p5 project is not an official p5.js or Processing Foundation release, though it aims to support and enhance the p5.js ecosystem.
 
 ## License
-This project is licensed under the LGPL-2.1 License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the [LGPL-2.1 License](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html), with the exception of the code templates (see below). Read the [LICENSE](LICENSE) file for details.
+
+The code templates provided in this repository are released under the Creative Commons CC0 1.0 Universal ([CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)) Public Domain Dedication. They can be freely used, modified, and distributed without restriction.
 
 ## Generative Code Disclosure
 Large portions of this project were generated with the assistance of generative coding tools (mainly Claude Code). While efforts have been made to ensure accuracy and quality, users should independently verify any LLM-generated content.
