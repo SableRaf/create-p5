@@ -1,8 +1,6 @@
->[!IMPORTANT]
->This project is a work in progress. While it is functional, some features may not be fully implemented or stable, and the documentation may be incomplete or inaccurate. API and functionality may change without notice. Use at your own discretion and feel free to contribute!
-
 # create-p5
-create-p5 is a scaffolding tool that enables users to quickly create and manage p5.js projects using the `npm create` convention. It provides both interactive and non-interactive modes for project creation, along with utilities to update existing projects safely.
+
+A scaffolding tool for quickly creating and managing [p5.js](https://p5js.org/) projects using the `npm create` convention. It provides both interactive and non-interactive modes for project creation, along with utilities to update existing projects safely.
 
 ![create-p5 CLI Demo](images/create-p5-CLI-demo.gif)
 
@@ -11,46 +9,79 @@ create-p5 is a scaffolding tool that enables users to quickly create and manage 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (version 18 or higher)
-- [Git](https://git-scm.com/)
 
-### Installation
+## Installation Options
 
-Clone the repository:
+You can use `create-p5` in three ways, depending on how often you plan to use it and how much you want installed on your system.
+
+### 1. One-off use (recommended for most people)
 
 ```bash
-git clone https://github.com/your-username/create-p5.git
-cd create-p5
-npm install
-npm link
+npm create p5
 ```
 
-This will create a global symlink for the `create-p5` command, allowing you to use it via `npx create-p5`.
+This downloads and runs the latest version of `create-p5` without installing anything globally.
+Good when you only need the tool occasionally or want to stay up to date automatically.
 
-### Uninstallation
-
-To uninstall the local link, run `npm unlink -g create-p5`.
-
-## Usage
-
-### Interactive Mode
-To create a new p5.js project, navigate to your desired directory and run:
+### 2. Run without installing (using `npx`)
 
 ```bash
 npx create-p5
 ```
 
+This runs the tool from npm each time.
+Useful when:
+
+* you want to use subcommands like `npx create-p5 update`
+* you prefer calling the CLI directly instead of using the `npm create` prefix
+
+### 3. Install globally
+
+```bash
+npm install -g create-p5
+```
+
+This makes the `create-p5` command available system-wide:
+
+```bash
+create-p5
+```
+
+You might prefer this if:
+
+* you create many projects regularly
+* you want the same version every time until you update it yourself
+* you need offline usage after initial installation
+
+---
+
+If you want, I can integrate this directly into your README in the right place and match the formatting.
+
+> [!NOTE]
+> This version refers to the scaffolding tool itself, not the p5.js library version in your project.
+
+## Usage
+
+### Create a New p5.js Project
+To create a new p5.js project, navigate to your desired directory and run:
+
+```bash
+npm create p5
+```
+
 You will be prompted to provide the following information:
 
 - **Project Name**: The name of your project directory.
-- **Template**: Choose from available templates (e.g., basic, instance, typescript).
 - **p5.js Version**: Specify the version of p5.js to use (defaults to the latest stable release).
+- **Delivery Mode**: Choose between local (download p5.js files) or CDN mode (link to p5.js using jsdelivr).
+- **Template**: Choose from available templates (e.g., basic, instance, typescript).
 
 ### Simplified Setup
 
 You can bypass the interactive prompts by providing command-line options:
 
 ```bash
-npx create-p5 --yes
+npm create p5 -- --yes
 ```
 
 This will use default values for all options (project name: `my-sketch`, template: `basic`, version: `latest`).
@@ -60,7 +91,7 @@ This will use default values for all options (project name: `my-sketch`, templat
 You can also create a project non-interactively by providing command-line options:
 
 ```bash
-npx create-p5 my-project-name --template typescript --version 2.1.0
+npm create p5 my-project-name -- --template typescript --version 2.1.0
 ```
 
 This command creates a new p5.js project named `my-project-name` using the TypeScript template and p5.js version 2.1.0.
@@ -78,31 +109,52 @@ npx create-p5 update
 This command will let you update the p5.js version and/or mode, applying them to your project while preserving your custom sketch code.
 
 >[!NOTE]
->The `update` command only work for projects originally created with `create-p5` (i.e., those containing a `p5-config.json` file).
+>The `update` command only works for projects originally created with `create-p5` (i.e., those containing a `p5-config.json` file).
 
 ### Using Remote Starter Templates
 
-You can also specify a remote Git repository as a starter template by using the `--template` option with a URL. 
+You can also specify a remote Git repository as a starter template by using the `--template` option with a URL.
 
 For example:
 
 ```bash
-npx create-p5 --template https://github.com/nbogie/p5-v2-ts-global-mode-starter.git
+npm create p5 -- --template https://github.com/nbogie/p5-v2-ts-global-mode-starter.git
 ```
 
-## Testing
+## Development
 
-Unit tests are provided using Vitest. To run the test suite locally, clone the repository and execute:
+### Local Development Setup
+
+To contribute or test local changes:
 
 ```bash
+git clone https://github.com/SableRaf/create-p5.git
+cd create-p5
 npm install
+npm link
+```
+
+This will create a global symlink for local testing.
+
+Then you can run `npx create-p5` from any directory to use your local version of the tool.
+
+To uninstall the local link, run:
+```bash
+npm unlink -g create-p5
+```
+
+### Testing
+
+Unit tests are provided using Vitest. To run the test suite:
+
+```bash
 npm test
 ```
 
-The tests include basic coverage for version fetching (mocked), HTML template injection, and configuration file read/write. Add more tests under the `tests/` directory as the codebase evolves.
+The tests include coverage for version fetching (mocked), HTML template injection, and configuration file read/write. Add more tests under the `tests/` directory as the codebase evolves.
 
 ## Acknowledgements
-This project builds upon the work of the p5.js community.  Thanks to all contributors and maintainers of p5.js. Thanks also to @nbogie and @davepagurek for their suggestions and feedback.
+This project builds upon the work of the p5.js community. Thanks to all contributors and maintainers of p5.js. Thanks also to @nbogie and @davepagurek for their suggestions and feedback.
 
 ## Warnings
 - This tool is provided "as is" without warranty of any kind. Use it at your own risk, and always back up your projects before applying updates.
