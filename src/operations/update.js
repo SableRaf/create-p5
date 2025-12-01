@@ -157,7 +157,7 @@ async function updateVersion(projectDir, config, options = {}) {
     types: typeDefsVersion
   });
 
-  display.outro(t('note.success.created'));
+  display.outro(t('note.success.updated'));
 }
 
 /**
@@ -239,5 +239,5 @@ async function switchMode(projectDir, config, options = {}) {
 
   display.success('info.update.modeUpdated', { oldMode: currentMode, newMode });
 
-  display.outro(t('note.success.created'));
+  display.outro(t('note.success.updated'));
 }

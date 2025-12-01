@@ -42,6 +42,7 @@
   "note.update.versionSummary.types": "TypeScript definitions: {types}",
 
   "note.success.created": "✓ Project created successfully!",
+  "note.success.updated": "✓ Project updated successfully!",
   "note.success.failed": "✗ Project creation failed",
 
   "note.verbose.remoteTemplateSpec": "  Remote template spec: {spec}",
