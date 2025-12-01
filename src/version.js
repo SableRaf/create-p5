@@ -11,6 +11,55 @@ export function isStableVersion(version) {
 }
 
 /**
+ * Parses a semantic version string into its components
+ * @param {string} version - Version string to parse (e.g., "1.9.0" or "2.1.0-rc.1")
+ * @returns {{ major: number, minor: number, patch: number, prerelease: string|null }} Parsed version components
+ */
+export function parseVersion(version) {
+  const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/);
+  if (!match) {
+    throw new Error(`Invalid semver version: ${version}`);
+  }
+  return {
+    major: parseInt(match[1], 10),
+    minor: parseInt(match[2], 10),
+    patch: parseInt(match[3], 10),
+    prerelease: match[4] || null
+  };
+}
+
+/**
+ * Determines whether to use @types/p5 or bundled types based on p5.js version
+ * @param {string} version - The p5.js version
+ * @returns {{ useTypesPackage: boolean, reason: string }} Strategy information
+ */
+export function getTypesStrategy(version) {
+  const parsed = parseVersion(version);
+
+  // p5.js 2.x bundled types starting from 2.0.2
+  if (parsed.major >= 2) {
+    if (parsed.major === 2 && parsed.minor === 0 && parsed.patch < 2) {
+      // 2.0.0 and 2.0.1 don't have bundled types yet
+      return {
+        useTypesPackage: true,
+        reason: 'p5.js 2.0.0-2.0.1 do not have bundled types'
+      };
+    }
+    // 2.0.2+ have bundled types
+    return {
+      useTypesPackage: false,
+      reason: 'p5.js 2.x has bundled types starting from 2.0.2'
+    };
+  }
+
+  // p5.js 1.x uses @types/p5
+  return {
+    useTypesPackage: true,
+    reason: 'p5.js 1.x uses @types/p5 package'
+  };
+}
+
+/**
  * Filters an array of version strings to include only stable releases
  * @param {string[]} versions - Array of version strings to filter
  * @returns {string[]} Array containing only stable version strings (X.Y.Z format)
@@ -105,9 +154,11 @@ export async function downloadP5Files(version, targetDir, spinner = null) {
 
 /**
  * Downloads TypeScript type definitions for p5.js from jsdelivr CDN.
- * For instance-mode sketches, downloads only p5.d.ts.
- * For global-mode sketches, downloads both global.d.ts and p5.d.ts.
- * Falls back to the latest version if the specified version's types are not found.
+ * Uses a two-tier strategy:
+ * - For p5.js 1.x: Downloads from @types/p5 package (up to 1.7.7)
+ * - For p5.js 2.x (2.0.2+): Downloads bundled types from p5 package
+ * For instance-mode sketches, downloads only the main definition file.
+ * For global-mode sketches, downloads both global.d.ts and main definition file.
  * @param {string} version - The p5.js version to download type definitions for
  * @param {string} targetDir - The directory path where type definitions should be saved
  * @param {Object} [spinner] - Optional spinner object with stop() method for progress feedback
@@ -117,56 +168,61 @@ export async function downloadP5Files(version, targetDir, spinner = null) {
  */
 export async function downloadTypeDefinitions(version, targetDir, spinner = null, template = null) {
   const cdnBase = 'https://cdn.jsdelivr.net/npm';
-
-  // Determine which files to download based on template
-  // Instance mode only needs p5.d.ts, global mode needs both
   const isInstanceMode = template === 'instance';
-  const typeFiles = isInstanceMode
-    ? [{ name: 'p5.d.ts', url: `${cdnBase}/p5@${version}/types/p5.d.ts` }]
-    : [
-        { name: 'global.d.ts', url: `${cdnBase}/p5@${version}/types/global.d.ts` },
-        { name: 'p5.d.ts', url: `${cdnBase}/p5@${version}/types/p5.d.ts` }
-      ];
 
   try {
     if (spinner) {
       spinner.message(t('spinner.downloadingTypes'));
     }
 
-    // Try to download the exact version first
-    let response = await fetch(typeFiles[0].url);
-    let actualVersion = version;
+    // Determine strategy based on p5.js version
+    const strategy = getTypesStrategy(version);
+    let typeFiles;
+    let actualTypesVersion;
 
-    // If not found, fallback to latest p5.js version
-    if (!response.ok) {
-      const { latest } = await fetchVersions();
-      actualVersion = latest;
-      // Update URLs to use latest version
-      typeFiles[0].url = `${cdnBase}/p5@${latest}/types/global.d.ts`;
-      typeFiles[1].url = `${cdnBase}/p5@${latest}/types/p5.d.ts`;
-      response = await fetch(typeFiles[0].url);
+    if (strategy.useTypesPackage) {
+      // Use @types/p5 package for p5.js 1.x (and 2.0.0-2.0.1)
+      // Latest available @types/p5 is 1.7.7
+      const LATEST_TYPES_VERSION = '1.7.7';
+      actualTypesVersion = LATEST_TYPES_VERSION;
+
+      // For @types/p5, the main file is index.d.ts
+      typeFiles = isInstanceMode
+        ? [{ name: 'index.d.ts', url: `${cdnBase}/@types/p5@${LATEST_TYPES_VERSION}/index.d.ts` }]
+        : [
+            { name: 'global.d.ts', url: `${cdnBase}/@types/p5@${LATEST_TYPES_VERSION}/global.d.ts` },
+            { name: 'index.d.ts', url: `${cdnBase}/@types/p5@${LATEST_TYPES_VERSION}/index.d.ts` }
+          ];
+    } else {
+      // Use bundled types from p5 package for 2.0.2+
+      actualTypesVersion = version;
+
+      typeFiles = isInstanceMode
+        ? [{ name: 'p5.d.ts', url: `${cdnBase}/p5@${version}/types/p5.d.ts` }]
+        : [
+            { name: 'global.d.ts', url: `${cdnBase}/p5@${version}/types/global.d.ts` },
+            { name: 'p5.d.ts', url: `${cdnBase}/p5@${version}/types/p5.d.ts` }
+          ];
     }
 
-    if (response.ok) {
-      // Download and write both type definition files
-      for (const file of typeFiles) {
-        const fileResponse = await fetch(file.url);
+    // Download and write all type definition files
+    for (const file of typeFiles) {
+      const fileResponse = await fetch(file.url);
 
-        if (!fileResponse.ok) {
-          throw new Error(`Failed to download ${file.name}: HTTP ${fileResponse.status}`);
-        }
-
-        const content = await fileResponse.text();
-        const targetPath = `${targetDir}/${file.name}`;
-        await writeFile(targetPath, content, 'utf-8');
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to download ${file.name}: HTTP ${fileResponse.status}`);
       }
 
-      if (spinner) {
-        spinner.stop(t('spinner.downloadedTypes', { version: actualVersion }));
-      }
+      const content = await fileResponse.text();
+      const targetPath = `${targetDir}/${file.name}`;
+      await writeFile(targetPath, content, 'utf-8');
     }
 
-    return actualVersion;
+    if (spinner) {
+      spinner.stop(t('spinner.downloadedTypes', { version: actualTypesVersion }));
+    }
+
+    return actualTypesVersion;
   } catch (error) {
     if (spinner) {
       spinner.stop(t('spinner.failedTypes'));
