@@ -1,10 +1,10 @@
 {
-  "name": "create-p5",
+  "name": "create-p5js",
   "version": "0.1.0",
   "description": "Scaffolding tool for p5.js projects",
   "type": "module",
   "bin": {
-    "create-p5": "index.js"
+    "create-p5js": "index.js"
   },
   "engines": {
     "node": ">=18.0.0"

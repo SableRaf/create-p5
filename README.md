@@ -17,34 +17,34 @@ You can use `create-p5` in three ways, depending on how often you plan to use it
 ### 1. One-off use (recommended for most people)
 
 ```bash
-npm create p5
+npm create p5js
 ```
 
-This downloads and runs the latest version of `create-p5` without installing anything globally.
+This downloads and runs the latest version of `create-p5js` without installing anything globally.
 Good when you only need the tool occasionally or want to stay up to date automatically.
 
 ### 2. Run without installing (using `npx`)
 
 ```bash
-npx create-p5
+npx create-p5js
 ```
 
 This runs the tool from npm each time.
 Useful when:
 
-* you want to use subcommands like `npx create-p5 update`
+* you want to use subcommands like `npx create-p5js update`
 * you prefer calling the CLI directly instead of using the `npm create` prefix
 
 ### 3. Install globally
 
 ```bash
-npm install -g create-p5
+npm install -g create-p5js
 ```
 
-This makes the `create-p5` command available system-wide:
+This makes the `create-p5js` command available system-wide:
 
 ```bash
-create-p5
+create-p5js
 ```
 
 You might prefer this if:
@@ -66,7 +66,7 @@ If you want, I can integrate this directly into your README in the right place a
 To create a new p5.js project, navigate to your desired directory and run:
 
 ```bash
-npm create p5
+npm create p5js
 ```
 
 You will be prompted to provide the following information:
@@ -81,7 +81,7 @@ You will be prompted to provide the following information:
 You can bypass the interactive prompts by providing command-line options:
 
 ```bash
-npm create p5 -- --yes
+npm create p5js -- --yes
 ```
 
 This will use default values for all options (project name: `my-sketch`, template: `basic`, version: `latest`).
@@ -91,25 +91,25 @@ This will use default values for all options (project name: `my-sketch`, templat
 You can also create a project non-interactively by providing command-line options:
 
 ```bash
-npm create p5 my-project-name -- --template typescript --version 2.1.0
+npm create p5js my-project-name -- --template typescript --version 2.1.0
 ```
 
 This command creates a new p5.js project named `my-project-name` using the TypeScript template and p5.js version 2.1.0.
 
-This may be useful for scripting or integrating create-p5 into other workflows.
+This may be useful for scripting or integrating create-p5js into other workflows.
 
 ### Updating Existing Projects
 
-To update an existing p5.js project created with `create-p5`, navigate to the project directory and run:
+To update an existing p5.js project created with `create-p5js`, navigate to the project directory and run:
 
 ```bash
-npx create-p5 update
+npx create-p5js update
 ```
 
 This command will let you update the p5.js version and/or mode, applying them to your project while preserving your custom sketch code.
 
 >[!NOTE]
->The `update` command only works for projects originally created with `create-p5` (i.e., those containing a `p5-config.json` file).
+>The `update` command only works for projects originally created with `create-p5js` (i.e., those containing a `p5-config.json` file).
 
 ### Using Remote Starter Templates
 
@@ -118,7 +118,7 @@ You can also specify a remote Git repository as a starter template by using the 
 For example:
 
 ```bash
-npm create p5 -- --template https://github.com/nbogie/p5-v2-ts-global-mode-starter.git
+npm create p5js -- --template https://github.com/nbogie/p5-v2-ts-global-mode-starter.git
 ```
 
 ## Development
@@ -136,11 +136,11 @@ npm link
 
 This will create a global symlink for local testing.
 
-Then you can run `npx create-p5` from any directory to use your local version of the tool.
+Then you can run `npx create-p5js` from any directory to use your local version of the tool.
 
 To uninstall the local link, run:
 ```bash
-npm unlink -g create-p5
+npm unlink -g create-p5js
 ```
 
 ### Testing
