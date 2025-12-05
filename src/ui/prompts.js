@@ -155,3 +155,29 @@ export async function confirmDeleteLib() {
     initialValue: false
   });
 }
+
+/**
+ * Prompt for TypeScript version selection when no exact match found
+ * @param {string[]} versions - Available versions to choose from
+ * @param {string} p5Version - The p5.js version being used
+ * @param {string} recommendedVersion - The recommended (closest) version
+ * @param {string} strategy - Either '@types/p5' or 'bundled'
+ * @returns {Promise<string>} Selected version or cancellation symbol
+ */
+export async function promptTypesVersion(versions, p5Version, recommendedVersion, strategy) {
+  const strategyLabel = strategy === '@types/p5'
+    ? t('prompt.typesVersion.strategy.types')
+    : t('prompt.typesVersion.strategy.bundled');
+
+  return await p.select({
+    message: t('prompt.typesVersion.message', { p5Version }),
+    options: versions.map(v => ({
+      value: v,
+      label: v === recommendedVersion
+        ? t('prompt.typesVersion.recommendedLabel', { version: v })
+        : `${v} ${strategyLabel}`
+    })),
+    initialValue: recommendedVersion,
+    maxItems: 10
+  });
+}
