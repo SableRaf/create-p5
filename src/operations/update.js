@@ -132,8 +132,8 @@ async function updateVersion(projectDir, config, options = {}) {
   // Update TypeScript definitions
   const typesPath = path.join(projectDir, 'types');
   await createDirectory(typesPath);
-  const typeDefsVersion = await downloadTypeDefinitions(newVersion, typesPath, null, config.template);
-  if (verbose) {
+  const typeDefsVersion = await downloadTypeDefinitions(newVersion, typesPath, null, config.template, true);
+  if (verbose && typeDefsVersion) {
     display.success('info.update.updatedTypes', { version: typeDefsVersion });
   }
 
