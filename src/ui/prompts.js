@@ -161,21 +161,16 @@ export async function confirmDeleteLib() {
  * @param {string[]} versions - Available versions to choose from
  * @param {string} p5Version - The p5.js version being used
  * @param {string} recommendedVersion - The recommended (closest) version
- * @param {string} strategy - Either '@types/p5' or 'bundled'
  * @returns {Promise<string>} Selected version or cancellation symbol
  */
-export async function promptTypesVersion(versions, p5Version, recommendedVersion, strategy) {
-  const strategyLabel = strategy === '@types/p5'
-    ? t('prompt.typesVersion.strategy.types')
-    : t('prompt.typesVersion.strategy.bundled');
-
+export async function promptTypesVersion(versions, p5Version, recommendedVersion) {
   return await p.select({
     message: t('prompt.typesVersion.message', { p5Version }),
     options: versions.map(v => ({
       value: v,
       label: v === recommendedVersion
         ? t('prompt.typesVersion.recommendedLabel', { version: v })
-        : `${v} ${strategyLabel}`
+        : v
     })),
     initialValue: recommendedVersion,
     maxItems: 10

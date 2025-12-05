@@ -81,8 +81,8 @@ export function findClosestVersion(targetVersion, availableVersions) {
   // Try exact major.minor match first
   const sameMinor = sameMajor.filter(v => v.minor === target.minor);
   if (sameMinor.length > 0) {
-    // Return highest patch in same major.minor
-    sameMinor.sort((a, b) => b.patch - a.patch);
+    // Return lowest patch in same major.minor (closest to target)
+    sameMinor.sort((a, b) => a.patch - b.patch);
     return `${sameMinor[0].major}.${sameMinor[0].minor}.${sameMinor[0].patch}`;
   }
 
@@ -155,6 +155,60 @@ export function getTypesStrategy(version) {
  */
 export function filterStableVersions(versions) {
   return versions.filter(isStableVersion);
+}
+
+/**
+ * Validates which @types/p5 versions are actually available on jsdelivr CDN
+ * @param {string[]} versions - Array of @types/p5 version strings to check
+ * @returns {Promise<string[]>} Array of versions that are available
+ */
+export async function filterAvailableTypesVersions(versions) {
+  const cdnBase = 'https://cdn.jsdelivr.net/npm';
+  const validVersions = [];
+
+  // Test each version by checking if index.d.ts exists
+  for (const version of versions) {
+    try {
+      const testUrl = `${cdnBase}/@types/p5@${version}/index.d.ts`;
+      const response = await fetch(testUrl, { method: 'HEAD' });
+
+      if (response.ok) {
+        validVersions.push(version);
+      }
+    } catch (error) {
+      // Skip versions that fail to fetch
+      continue;
+    }
+  }
+
+  return validVersions;
+}
+
+/**
+ * Validates which p5.js 2.x versions have bundled TypeScript definitions available
+ * @param {string[]} versions - Array of p5.js version strings to check
+ * @returns {Promise<string[]>} Array of versions that have bundled types available
+ */
+export async function filterVersionsWithBundledTypes(versions) {
+  const cdnBase = 'https://cdn.jsdelivr.net/npm';
+  const validVersions = [];
+
+  // Test each version by checking if global.d.ts exists
+  for (const version of versions) {
+    try {
+      const testUrl = `${cdnBase}/p5@${version}/types/global.d.ts`;
+      const response = await fetch(testUrl, { method: 'HEAD' });
+
+      if (response.ok) {
+        validVersions.push(version);
+      }
+    } catch (error) {
+      // Skip versions that fail to fetch
+      continue;
+    }
+  }
+
+  return validVersions;
 }
 
 /**
@@ -261,10 +315,6 @@ export async function downloadTypeDefinitions(version, targetDir, spinner = null
   const isInstanceMode = template === 'instance';
 
   try {
-    if (spinner) {
-      spinner.message(t('spinner.downloadingTypes'));
-    }
-
     // Determine strategy based on p5.js version
     const strategy = getTypesStrategy(version);
     let typeFiles;
@@ -272,17 +322,28 @@ export async function downloadTypeDefinitions(version, targetDir, spinner = null
 
     if (strategy.useTypesPackage) {
       // Use @types/p5 package for p5.js 1.x
+      if (spinner) {
+        spinner.message(t('spinner.lookingUpTypes'));
+      }
+
       const typesVersions = await fetchTypesVersions();
 
+      // Validate which versions are actually available
+      const validTypesVersions = await filterAvailableTypesVersions(typesVersions);
+
+      if (spinner) {
+        spinner.stop(t('spinner.lookedUpTypes'));
+      }
+
       // Try to find exact major.minor match first
-      const exactMatch = findExactMinorMatch(version, typesVersions);
+      const exactMatch = findExactMinorMatch(version, validTypesVersions);
 
       if (exactMatch) {
         // Found exact match, use it without prompting
         actualTypesVersion = exactMatch;
       } else {
         // No exact match - need to select a version
-        const recommendedVersion = findClosestVersion(version, typesVersions);
+        const recommendedVersion = findClosestVersion(version, validTypesVersions);
 
         if (!recommendedVersion) {
           throw new Error(`No compatible @types/p5 version found for p5.js ${version}`);
@@ -295,10 +356,9 @@ export async function downloadTypeDefinitions(version, targetDir, spinner = null
           }
 
           const selectedVersion = await prompts.promptTypesVersion(
-            typesVersions,
+            validTypesVersions,
             version,
-            recommendedVersion,
-            '@types/p5'
+            recommendedVersion
           );
 
           if (prompts.isCancel(selectedVersion)) {
@@ -345,6 +405,10 @@ export async function downloadTypeDefinitions(version, targetDir, spinner = null
       const testResponse = await fetch(typeFiles[0].url);
       if (!testResponse.ok) {
         // Types not available for this version - need to select alternative
+        if (spinner) {
+          spinner.message(t('spinner.lookingUpTypes'));
+        }
+
         const { versions } = await fetchVersions();
 
         // Filter to only 2.x versions
@@ -357,7 +421,14 @@ export async function downloadTypeDefinitions(version, targetDir, spinner = null
           }
         });
 
-        const recommendedVersion = findClosestVersion(version, v2Versions);
+        // Validate which versions actually have bundled types available
+        const validV2Versions = await filterVersionsWithBundledTypes(v2Versions);
+
+        if (spinner) {
+          spinner.stop(t('spinner.lookedUpTypes'));
+        }
+
+        const recommendedVersion = findClosestVersion(version, validV2Versions);
 
         if (!recommendedVersion) {
           throw new Error(`No compatible p5.js version with bundled types found for ${version}`);
@@ -370,10 +441,9 @@ export async function downloadTypeDefinitions(version, targetDir, spinner = null
           }
 
           const selectedVersion = await prompts.promptTypesVersion(
-            v2Versions,
+            validV2Versions,
             version,
-            recommendedVersion,
-            'bundled'
+            recommendedVersion
           );
 
           if (prompts.isCancel(selectedVersion)) {
@@ -407,6 +477,10 @@ export async function downloadTypeDefinitions(version, targetDir, spinner = null
     }
 
     // Download and write all type definition files
+    if (spinner) {
+      spinner = display.spinner('spinner.downloadingTypes');
+    }
+
     for (const file of typeFiles) {
       const fileResponse = await fetch(file.url);
 
