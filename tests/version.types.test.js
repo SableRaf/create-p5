@@ -42,8 +42,9 @@ describe('findClosestVersion', () => {
 
   it('finds closest minor when exact match not available', () => {
     const result = findClosestVersion('1.6.0', availableVersions);
-    // 1.6 not available, closest is 1.5 or 1.7, should pick 1.5 (first in sort)
-    expect(['1.5.0', '1.7.7']).toContain(result);
+    // 1.6 not available, both 1.5 and 1.7 are equidistant (distance 1)
+    // Should pick highest patch in highest minor with min distance
+    expect(result).toBe('1.7.7');
   });
 
   it('returns null when no matching major version', () => {

@@ -85,8 +85,15 @@ export function findClosestVersion(targetVersion, availableVersions) {
   }
 
   // Find closest minor version
-  sameMajor.sort((a, b) => Math.abs(a.minor - target.minor) - Math.abs(b.minor - target.minor));
-  const closest = sameMajor[0];
+  // When equidistant, prefer higher minor, then highest patch
+  const minDistance = Math.min(...sameMajor.map(v => Math.abs(v.minor - target.minor)));
+  const closestMinors = sameMajor.filter(v => Math.abs(v.minor - target.minor) === minDistance);
+  // Sort by minor desc, then patch desc to get highest patch in highest minor with min distance
+  closestMinors.sort((a, b) => {
+    if (a.minor !== b.minor) return b.minor - a.minor;
+    return b.patch - a.patch;
+  });
+  const closest = closestMinors[0];
   return `${closest.major}.${closest.minor}.${closest.patch}`;
 }
 
