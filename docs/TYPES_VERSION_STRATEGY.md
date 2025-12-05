@@ -22,9 +22,11 @@ We use a two-tier strategy based on the p5.js version:
 
 **Version matching logic:**
 1. Fetch available @types/p5 versions from jsdelivr API
-2. Find closest match by major.minor version (highest patch in same minor)
-3. If exact minor not available, find closest minor within same major
-4. Select highest patch version within matched minor
+2. Try to find exact major.minor match (highest patch in that minor)
+3. **If exact match found**: Use it automatically (no user prompt)
+4. **If no exact match** (interactive mode): Prompt user to select from available versions
+5. **If no exact match** (non-interactive mode): Auto-select closest match with warning
+6. Closest match prioritizes: exact minor, then closest minor within same major
 
 **Example mappings:**
 - p5.js 1.4.0 → @types/p5@1.4.3 (highest patch in 1.4.x)
@@ -44,14 +46,50 @@ We use a two-tier strategy based on the p5.js version:
 
 **Version matching logic:**
 1. Try exact version match first (e.g., p5@2.1.1 → p5@2.1.1/types/)
-2. If not available, fetch all p5.js versions and find closest 2.x match
-3. Use same algorithm as 1.x: prefer exact minor, then closest minor
+2. **If exact match found**: Use it automatically (no user prompt)
+3. **If not available** (interactive mode): Prompt user to select from available 2.x versions
+4. **If not available** (non-interactive mode): Auto-select closest 2.x match with warning
+5. Closest match uses same algorithm as 1.x: prefer exact minor, then closest minor
 
 **Example mappings:**
 - p5.js 2.0.0 → p5@2.0.2/types/ (closest 2.x with bundled types)
 - p5.js 2.0.1 → p5@2.0.2/types/ (closest 2.x with bundled types)
 - p5.js 2.0.2 → p5@2.0.2/types/ (exact match)
 - p5.js 2.1.1 → p5@2.1.1/types/ (exact match)
+
+## Interactive vs Non-Interactive Mode
+
+### Interactive Mode (default)
+
+When running `npm create p5@latest` without `--yes` flag:
+
+1. **Exact match exists**: Downloads silently, no prompt needed
+2. **No exact match**: Shows a selection prompt with:
+   - Clear explanation of why prompting is needed
+   - List of all compatible versions
+   - Recommended version pre-selected (closest match)
+   - User can select any version or cancel
+3. **User cancels**: Continues project creation without TypeScript definitions
+
+**Example prompt:**
+```
+? No exact TypeScript definitions found for p5.js 1.9.0. Select a version to use:
+  > 1.7.7 (recommended)
+    1.7.6 from @types/p5
+    1.5.0 from @types/p5
+    1.4.3 from @types/p5
+```
+
+### Non-Interactive Mode (--yes flag)
+
+When running with `--yes` flag (e.g., `npm create p5@latest my-sketch -- --yes`):
+
+1. **Exact match exists**: Downloads silently
+2. **No exact match**: Auto-selects closest match and displays info message:
+   - "No exact TypeScript definitions found for p5.js X.Y.Z. Automatically selected A.B.C (closest match)."
+3. **No cancellation**: Always attempts to download types (or fails with error)
+
+This maintains backward compatibility for CI/automation workflows.
 
 ## File Structure Differences
 
@@ -82,14 +120,22 @@ The `downloadTypeDefinitions()` function in `src/version.js`:
 
 2. **For p5.js 1.x (@types/p5)**:
    - Call `fetchTypesVersions()` to get available @types/p5 versions
-   - Call `findClosestVersion(version, typesVersions)` to match
-   - Download from `@types/p5@{matchedVersion}/`
+   - Call `findExactMinorMatch(version, typesVersions)` to check for exact match
+   - **If exact match**: Use it, skip to download
+   - **If no exact match**:
+     - Interactive: Call `promptTypesVersion()` with recommended version
+     - Non-interactive: Use `findClosestVersion()` and show info message
+   - Download from `@types/p5@{selectedVersion}/`
 
 3. **For p5.js 2.x (bundled types)**:
-   - Try to download from `p5@{version}/types/` first
-   - If 404, call `fetchVersions()` to get all p5.js versions
-   - Call `findClosestVersion(version, p5Versions)` to find fallback
-   - Download from `p5@{matchedVersion}/types/`
+   - Try to fetch from `p5@{version}/types/` to test if exact version exists
+   - **If exact version exists**: Use it, skip to download
+   - **If 404 (no exact match)**:
+     - Call `fetchVersions()` to get all p5.js versions
+     - Filter to only 2.x versions
+     - Interactive: Call `promptTypesVersion()` with recommended version
+     - Non-interactive: Use `findClosestVersion()` and show info message
+   - Download from `p5@{selectedVersion}/types/`
 
 4. **File selection based on template**:
    - Instance mode: Only main file (p5.d.ts or index.d.ts)
@@ -101,8 +147,10 @@ The `downloadTypeDefinitions()` function in `src/version.js`:
 
 - `parseVersion(version)` - Parses semver into components (major, minor, patch, prerelease)
 - `fetchTypesVersions()` - Fetches available @types/p5 versions from jsdelivr API
+- `findExactMinorMatch(target, available)` - Returns exact major.minor match or null
 - `findClosestVersion(target, available)` - Matches by major.minor, prefers exact, then closest
 - `getTypesStrategy(version)` - Determines bundled vs @types/p5 strategy
+- `promptTypesVersion(versions, p5Version, recommended, strategy)` - Interactive version selection prompt
 
 ## Edge Cases
 
