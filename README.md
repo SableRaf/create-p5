@@ -2,7 +2,7 @@
 
 A scaffolding tool for quickly creating and managing [p5.js](https://p5js.org/) projects using the `npm create` convention.
 
-Setting up a p5.js project from scratch is not very hard, but if you do it often it can become repetitive and time-consuming. This tool gives you ready-made templates, optional extras like type definitions, and a simple way to pick and switch the p5.js version used. You can also choose whether to load p5.js from a CDN or keep the files locally.
+Setting up a p5.js project from scratch is not very hard, but if you do it often it can become repetitive and time-consuming. This tool gives you ready-made templates, configuration options, and a simple way to pick and switch the p5.js version used.
 
 Simply put: spend less time configuring your project and more time creative coding with p5.js 🌸
 
