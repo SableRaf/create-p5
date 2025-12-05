@@ -6,6 +6,8 @@ Setting up a p5.js project from scratch is not very hard, but if you do it often
 
 Simply put: spend less time configuring your project and more time creative coding with p5.js 🌸
 
+![create-p5 CLI Demo](images/create-p5-CLI-demo.gif)
+
 ## Creating Your First p5.js Project
 
 With NPM:
