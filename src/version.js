@@ -394,6 +394,9 @@ export async function resolveTypesVersion(p5Version, spinner = null, isInteracti
       const typesVersions = await fetchTypesVersions();
 
       // Validate which versions are actually available
+      if (spinner) {
+        spinner.message(t('spinner.validatingTypes'));
+      }
       const validTypesVersions = await filterAvailableTypesVersions(typesVersions);
 
       if (spinner) {
@@ -472,6 +475,9 @@ export async function resolveTypesVersion(p5Version, spinner = null, isInteracti
       });
 
       // Validate which versions actually have bundled types available
+      if (spinner) {
+        spinner.message(t('spinner.validatingTypes'));
+      }
       const validV2Versions = await filterVersionsWithBundledTypes(v2Versions);
 
       if (spinner) {

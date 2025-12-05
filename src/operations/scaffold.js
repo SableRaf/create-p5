@@ -212,12 +212,8 @@ export async function scaffold(args) {
     if (args.types !== false) {
       try {
         const isInteractive = !args.yes;
-        if (args.verbose) {
-          const resolveSpinner = display.spinner('spinner.lookingUpTypes');
-          resolvedTypesVersion = await resolveTypesVersion(selectedVersion, resolveSpinner, isInteractive);
-        } else {
-          resolvedTypesVersion = await resolveTypesVersion(selectedVersion, null, isInteractive);
-        }
+        const resolveSpinner = display.spinner('spinner.lookingUpTypes');
+        resolvedTypesVersion = await resolveTypesVersion(selectedVersion, resolveSpinner, isInteractive);
         // resolvedTypesVersion will be null if user cancelled the selection
         if (resolvedTypesVersion === null && isInteractive) {
           // User cancelled types selection - exit early before creating any files
