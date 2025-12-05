@@ -91,6 +91,39 @@ export function findClosestVersion(targetVersion, availableVersions) {
 }
 
 /**
+ * Finds exact match by major.minor version (highest patch within that minor version)
+ * Returns null if no exact major.minor match exists
+ * @param {string} targetVersion - The target version to match (e.g., "1.4.0")
+ * @param {string[]} availableVersions - Array of available versions to search
+ * @returns {string|null} Exact major.minor match (highest patch) or null if not found
+ */
+export function findExactMinorMatch(targetVersion, availableVersions) {
+  const target = parseVersion(targetVersion);
+  const candidates = availableVersions
+    .map(v => {
+      try {
+        return parseVersion(v);
+      } catch {
+        return null;
+      }
+    })
+    .filter(v => v !== null);
+
+  // Filter to exact major.minor match
+  const exactMatches = candidates.filter(
+    v => v.major === target.major && v.minor === target.minor
+  );
+
+  if (exactMatches.length === 0) {
+    return null;
+  }
+
+  // Return highest patch in this major.minor version
+  exactMatches.sort((a, b) => b.patch - a.patch);
+  return `${exactMatches[0].major}.${exactMatches[0].minor}.${exactMatches[0].patch}`;
+}
+
+/**
  * Determines whether to use @types/p5 or bundled types based on p5.js version
  * @param {string} version - The p5.js version
  * @returns {{ useTypesPackage: boolean, reason: string }} Strategy information
