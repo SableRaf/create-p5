@@ -17,7 +17,7 @@ import * as prompts from '../ui/prompts.js';
 
 // Business utilities
 import { copyTemplateFiles, validateProjectName, directoryExists, validateTemplate, validateMode, validateVersion, generateProjectName } from '../utils.js';
-import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
+import { fetchVersions, downloadP5Files, downloadTypeDefinitions, resolveTypesVersion } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
 import { createConfig } from '../config.js';
 import { initGit, addLibToGitignore } from '../git.js';
@@ -207,6 +207,31 @@ export async function scaffold(args) {
       }
     }
 
+    // PHASE 1: Resolve TypeScript version (before any file operations)
+    let resolvedTypesVersion = null;
+    if (args.types !== false) {
+      try {
+        const isInteractive = !args.yes;
+        if (args.verbose) {
+          const resolveSpinner = display.spinner('spinner.lookingUpTypes');
+          resolvedTypesVersion = await resolveTypesVersion(selectedVersion, resolveSpinner, isInteractive);
+        } else {
+          resolvedTypesVersion = await resolveTypesVersion(selectedVersion, null, isInteractive);
+        }
+        // resolvedTypesVersion will be null if user cancelled the selection
+        if (resolvedTypesVersion === null && isInteractive) {
+          // User cancelled types selection - exit early before creating any files
+          process.exit(0);
+        }
+      } catch (error) {
+        display.warn('error.fetchVersions.failed');
+        display.message(error.message);
+        display.info('info.continueWithoutTypes');
+        // Continue without types, but don't fail the entire operation
+        resolvedTypesVersion = null;
+      }
+    }
+
     // Show summary of choices if not using --yes flag
     if (!args.yes && (args.template || args.version || args.mode || args.git || args.types === false)) {
       display.message('');
@@ -306,20 +331,18 @@ export async function scaffold(args) {
     const updatedHtml = injectP5Script(htmlContent, selectedVersion, selectedMode);
     await fs.writeFile(indexPath, updatedHtml, 'utf-8');
 
-    // Download TypeScript definitions for IntelliSense (all templates)
+    // PHASE 2: Download TypeScript definitions (using pre-resolved version)
     let typeDefsVersion = null;
-    if (args.types !== false) {
+    if (resolvedTypesVersion !== null) {
       const typesPath = path.join(targetPath, 'types');
       await fs.mkdir(typesPath, { recursive: true });
       try {
-        const isInteractive = !args.yes;
         if (args.verbose) {
           const typesSpinner = display.spinner('spinner.downloadingTypes');
-          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, typesSpinner, selectedTemplate, isInteractive);
+          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, resolvedTypesVersion, typesPath, typesSpinner, selectedTemplate);
         } else {
-          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, null, selectedTemplate, isInteractive);
+          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, resolvedTypesVersion, typesPath, null, selectedTemplate);
         }
-        // typeDefsVersion will be null if user cancelled the selection
       } catch (error) {
         display.warn('error.fetchVersions.failed');
         display.message(error.message);
@@ -327,7 +350,7 @@ export async function scaffold(args) {
         // Don't fail the entire operation if type definitions fail
         typeDefsVersion = null;
       }
-    } else {
+    } else if (args.types === false) {
       display.warn('info.skipTypes');
     }
 
