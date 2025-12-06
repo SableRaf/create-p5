@@ -252,6 +252,43 @@ export function validateMode(mode) {
 }
 
 /**
+ * Validates language choice
+ * @param {string} language - Language to validate
+ * @returns {string|null} Error message or null if valid
+ */
+export function validateLanguage(language) {
+  const valid = ['javascript', 'typescript'];
+  if (!valid.includes(language)) {
+    return `Invalid language: ${language}. Must be one of: ${valid.join(', ')}`;
+  }
+  return null;
+}
+
+/**
+ * Validates p5.js mode choice
+ * @param {string} mode - Mode to validate
+ * @returns {string|null} Error message or null if valid
+ */
+export function validateP5Mode(mode) {
+  const valid = ['global', 'instance'];
+  if (!valid.includes(mode)) {
+    return `Invalid mode: ${mode}. Must be one of: ${valid.join(', ')}`;
+  }
+  return null;
+}
+
+/**
+ * Determines template directory name from language and mode
+ * @param {string} language - 'javascript' or 'typescript'
+ * @param {string} mode - 'global' or 'instance'
+ * @returns {string} Template directory name (e.g., 'basic-global-js')
+ */
+export function getTemplateName(language, mode) {
+  const langSuffix = language === 'typescript' ? 'ts' : 'js';
+  return `basic-${mode}-${langSuffix}`;
+}
+
+/**
  * Validates that a version exists in the available versions list
  *
  * @param {string} version - The version to validate
