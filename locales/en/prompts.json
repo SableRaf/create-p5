@@ -11,12 +11,12 @@
   "prompt.languageMode.group.mode.hint": "Choose how p5.js runs",
 
   "prompt.languageMode.option.javascript.label": "JavaScript",
-  "prompt.languageMode.option.javascript.hint": "Standard JavaScript",
+  "prompt.languageMode.option.javascript.hint": "Recommended",
   "prompt.languageMode.option.typescript.label": "TypeScript",
   "prompt.languageMode.option.typescript.hint": "Type-safe JavaScript superset",
 
   "prompt.languageMode.option.global.label": "Global mode",
-  "prompt.languageMode.option.global.hint": "Standard p5.js style (recommended)",
+  "prompt.languageMode.option.global.hint": "Recommended",
   "prompt.languageMode.option.instance.label": "Instance mode",
   "prompt.languageMode.option.instance.hint": "Useful for multiple sketches on one page",
 
@@ -24,10 +24,10 @@
   "prompt.version.latestLabel": "{version} (latest)",
 
   "prompt.mode.message": "Select delivery mode:",
-  "prompt.mode.option.cdn.label": "CDN",
-  "prompt.mode.option.cdn.hint": "Load p5.js from jsdelivr CDN (recommended for most users)",
-  "prompt.mode.option.local.label": "Local",
-  "prompt.mode.option.local.hint": "Download p5.js files to your project (works offline)",
+  "prompt.mode.option.cdn.label": "Load p5.js from CDN",
+  "prompt.mode.option.cdn.hint": "Recommended",
+  "prompt.mode.option.local.label": "Download p5.js files",
+  "prompt.mode.option.local.hint": "Useful for offline use",
 
   "prompt.update.action.message": "What would you like to update?",
   "prompt.update.action.option.version.label": "Update p5.js version",
