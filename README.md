@@ -126,6 +126,17 @@ npm create p5js my-project -- --template https://github.com/nbogie/p5-v2-ts-glob
 
 This uses [degit](https://github.com/Rich-Harris/degit) to clone the template repository.
 
+## Troubleshooting
+
+### Hints or Autocomplete Not Working in VS Code
+
+If you're not seeing p5.js autocomplete or type hints in VS Code after setup, restart the TypeScript language server:
+
+1. Open the Command Palette (F1 or Cmd/Ctrl+Shift+P)
+2. Type "restart" and select **TypeScript: Restart TS Server**
+
+This forces VS Code to reload `jsconfig.json` and recognize the type definitions in the `types/` folder.
+
 ## Acknowledgment
 
 This project builds upon the work of the p5.js community. Thanks to all contributors and maintainers of p5.js. Thanks also to [@nbogie](https://github.com/nbogie) and [@davepagurek](https://github.com/davepagurek) for their suggestions and feedback.
