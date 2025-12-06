@@ -1,20 +1,20 @@
 # NPM Publication Plan
 
-Simple step-by-step guide for publishing create-p5 to npm.
+Simple step-by-step guide for publishing create-p5js to npm.
 
 ## Prerequisites
 
-- [ ] npm account created at [npmjs.com](https://www.npmjs.com/)
-- [ ] npm CLI installed (comes with Node.js)
-- [ ] Logged into npm locally: `npm login`
-- [ ] All tests passing: `npm test`
-- [ ] Package name "create-p5" is available on npm
+- [x] npm account created at [npmjs.com](https://www.npmjs.com/)
+- [x] npm CLI installed (comes with Node.js)
+- [x] Logged into npm locally: `npm login`
+- [x] All tests passing: `npm test`
+- [x] Package name "create-p5js" is available on npm
 
 ## Pre-Publication Checklist
 
 ### 1. Verify Package Metadata
 - [ ] Check [package.json](../package.json) has correct:
-  - `name`: "create-p5"
+  - `name`: "create-p5js"
   - `version`: "0.1.0" (or appropriate version)
   - `description`: Clear and concise
   - `keywords`: Relevant search terms
@@ -42,11 +42,11 @@ coverage/
 npm pack
 
 # Check the contents
-tar -tzf create-p5-*.tgz
+tar -tzf create-p5js-*.tgz
 
 # Test installation locally in another directory
-npm install -g ./create-p5-*.tgz
-npm create p5@latest test-project
+npm install -g ./create-p5js-*.tgz
+npm create p5js@latest test-project
 ```
 
 ### 4. Final Code Review
@@ -92,10 +92,10 @@ npm publish
 ### Step 6: Verify Publication
 ```bash
 # Check the package page
-open https://www.npmjs.com/package/create-p5
+open https://www.npmjs.com/package/create-p5js
 
 # Test installation
-npx create-p5@latest test-project
+npx create-p5js@latest test-project
 ```
 
 ### Step 7: Tag the Release
@@ -113,7 +113,7 @@ git push origin main
 
 ## Post-Publication
 
-- [ ] Test installation: `npm create p5@latest`
+- [ ] Test installation: `npm create p5js@latest`
 - [ ] Update documentation with npm installation instructions
 - [ ] Announce on relevant channels (if applicable)
 - [ ] Monitor for issues on GitHub
@@ -143,7 +143,7 @@ For subsequent versions:
 ## Troubleshooting
 
 **"Package name already exists"**
-- Check if name is taken: `npm search create-p5`
+- Check if name is taken: `npm search create-p5js`
 - Consider alternative name or contact current owner
 
 **"You must verify your email"**
@@ -162,6 +162,6 @@ For subsequent versions:
 ## Notes
 
 - npm packages named `create-*` work with `npm create` command
-- Users can run: `npm create p5@latest` (equivalent to `npx create-p5@latest`)
+- Users can run: `npm create p5js@latest` (equivalent to `npx create-p5js@latest`)
 - Always test in clean environment before publishing
 - Version numbers follow [Semantic Versioning](https://semver.org/)
