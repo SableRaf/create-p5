@@ -48,35 +48,55 @@ export async function promptProjectPath(initialValue) {
 }
 
 /**
- * Prompt for template selection
- * @returns {Promise<string>} Selected template value
+ * Prompt for language and mode selection using groupMultiselect
+ * @returns {Promise<string[]>} Array of selected values: ['javascript'|'typescript', 'global'|'instance']
  */
-export async function promptTemplate() {
-  return await p.select({
-    message: t('prompt.template.message'),
-    options: [
-      {
-        value: 'basic',
-        label: t('prompt.template.option.basic.label'),
-        hint: t('prompt.template.option.basic.hint')
+export async function promptLanguageAndMode() {
+  const result = await p.groupMultiselect({
+    message: t('prompt.languageMode.message'),
+    required: true,
+    options: {
+      language: {
+        label: t('prompt.languageMode.group.language.label'),
+        hint: t('prompt.languageMode.group.language.hint'),
+        options: [
+          {
+            value: 'javascript',
+            label: t('prompt.languageMode.option.javascript.label'),
+            hint: t('prompt.languageMode.option.javascript.hint')
+          },
+          {
+            value: 'typescript',
+            label: t('prompt.languageMode.option.typescript.label'),
+            hint: t('prompt.languageMode.option.typescript.hint')
+          }
+        ]
       },
-      {
-        value: 'instance',
-        label: t('prompt.template.option.instance.label'),
-        hint: t('prompt.template.option.instance.hint')
-      },
-      {
-        value: 'typescript',
-        label: t('prompt.template.option.typescript.label'),
-        hint: t('prompt.template.option.typescript.hint')
-      },
-      {
-        value: 'empty',
-        label: t('prompt.template.option.empty.label'),
-        hint: t('prompt.template.option.empty.hint')
+      mode: {
+        label: t('prompt.languageMode.group.mode.label'),
+        hint: t('prompt.languageMode.group.mode.hint'),
+        options: [
+          {
+            value: 'global',
+            label: t('prompt.languageMode.option.global.label'),
+            hint: t('prompt.languageMode.option.global.hint')
+          },
+          {
+            value: 'instance',
+            label: t('prompt.languageMode.option.instance.label'),
+            hint: t('prompt.languageMode.option.instance.hint')
+          }
+        ]
       }
-    ]
+    }
   });
+
+  // groupMultiselect returns an object like { language: ['javascript'], mode: ['global'] }
+  // Extract the first (and only) value from each group
+  const language = result.language[0];
+  const mode = result.mode[0];
+
+  return [language, mode];
 }
 
 /**
