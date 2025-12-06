@@ -176,7 +176,37 @@ export async function scaffold(args) {
       }
     }
 
-    // Determine language, p5Mode, and template
+    // Determine version (flag or prompt) - MOVED UP
+    let selectedVersion;
+    if (args.version) {
+      selectedVersion = args.version === 'latest' ? latest : args.version;
+      display.success('info.usingVersion', { version: selectedVersion });
+    } else if (args.yes) {
+      selectedVersion = latest;
+      display.success('info.latestVersion', { version: latest });
+    } else {
+      selectedVersion = await prompts.promptVersion(versions, latest);
+      if (prompts.isCancel(selectedVersion)) {
+        display.cancel('prompt.cancel.sketchCreation');
+      }
+    }
+
+    // Determine delivery mode (flag or prompt) - MOVED UP
+    let selectedMode;
+    if (args.mode) {
+      selectedMode = args.mode;
+      display.success('info.usingMode', { mode: selectedMode });
+    } else if (args.yes) {
+      selectedMode = 'cdn';
+      display.success('info.defaultMode');
+    } else {
+      selectedMode = await prompts.promptMode();
+      if (prompts.isCancel(selectedMode)) {
+        display.cancel('prompt.cancel.sketchCreation');
+      }
+    }
+
+    // Determine language, p5Mode, and template - MOVED DOWN
     let selectedLanguage, selectedP5Mode, selectedTemplate;
 
     if (args.template) {
@@ -205,36 +235,6 @@ export async function scaffold(args) {
       }
       [selectedLanguage, selectedP5Mode] = choices;
       selectedTemplate = null;
-    }
-
-    // Determine version (flag or prompt)
-    let selectedVersion;
-    if (args.version) {
-      selectedVersion = args.version === 'latest' ? latest : args.version;
-      display.success('info.usingVersion', { version: selectedVersion });
-    } else if (args.yes) {
-      selectedVersion = latest;
-      display.success('info.latestVersion', { version: latest });
-    } else {
-      selectedVersion = await prompts.promptVersion(versions, latest);
-      if (prompts.isCancel(selectedVersion)) {
-        display.cancel('prompt.cancel.sketchCreation');
-      }
-    }
-
-    // Determine delivery mode (flag or prompt)
-    let selectedMode;
-    if (args.mode) {
-      selectedMode = args.mode;
-      display.success('info.usingMode', { mode: selectedMode });
-    } else if (args.yes) {
-      selectedMode = 'cdn';
-      display.success('info.defaultMode');
-    } else {
-      selectedMode = await prompts.promptMode();
-      if (prompts.isCancel(selectedMode)) {
-        display.cancel('prompt.cancel.sketchCreation');
-      }
     }
 
 
