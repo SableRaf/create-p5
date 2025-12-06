@@ -14,4 +14,4 @@ const sketch = (p) => {
 };
 
 // Create a new p5 instance, passing in the sketch function
-new p5(sketch, 'sketch-container');
+new p5(sketch);
