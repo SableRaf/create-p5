@@ -16,7 +16,7 @@ import * as display from '../ui/display.js';
 import * as prompts from '../ui/prompts.js';
 
 // Business utilities
-import { copyTemplateFiles, validateProjectName, directoryExists, validateTemplate, validateMode, validateVersion, generateProjectName } from '../utils.js';
+import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, getTemplateName, generateProjectName, isRemoteTemplateSpec as isRemoteTemplateSpecUtil } from '../utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
 import { createConfig } from '../config.js';
@@ -141,10 +141,24 @@ export async function scaffold(args) {
     }
 
     // Validate all flags immediately after fetching versions (before any prompts)
+    if (args.language) {
+      const langError = validateLanguage(args.language);
+      if (langError) {
+        throw new Error(langError);
+      }
+    }
+
+    if (args['p5-mode']) {
+      const p5ModeError = validateP5Mode(args['p5-mode']);
+      if (p5ModeError) {
+        throw new Error(p5ModeError);
+      }
+    }
+
     if (args.template) {
-      const templateError = validateTemplate(args.template);
-      if (templateError) {
-        throw new Error(templateError);
+      // --template flag now ONLY for community templates
+      if (!isRemoteTemplateSpecUtil(args.template)) {
+        throw new Error(t('error.templateMustBeRemote', { template: args.template }));
       }
     }
 
@@ -162,19 +176,35 @@ export async function scaffold(args) {
       }
     }
 
-    // Determine template (flag or prompt)
-    let selectedTemplate;
+    // Determine language, p5Mode, and template
+    let selectedLanguage, selectedP5Mode, selectedTemplate;
+
     if (args.template) {
+      // Community template - skip language/mode prompts
       selectedTemplate = args.template;
-      display.success('info.usingTemplate', { template: selectedTemplate });
+      selectedLanguage = null;
+      selectedP5Mode = null;
+      display.success('info.usingCommunityTemplate', { template: selectedTemplate });
+    } else if (args.language && args['p5-mode']) {
+      // Non-interactive with flags
+      selectedLanguage = args.language;
+      selectedP5Mode = args['p5-mode'];
+      selectedTemplate = null;
+      display.success('info.usingLanguageMode', { language: selectedLanguage, p5Mode: selectedP5Mode });
     } else if (args.yes) {
-      selectedTemplate = 'basic';
-      display.success('info.defaultTemplate');
+      // Defaults: JavaScript + Global mode
+      selectedLanguage = 'javascript';
+      selectedP5Mode = 'global';
+      selectedTemplate = null;
+      display.success('info.defaultLanguageMode');
     } else {
-      selectedTemplate = await prompts.promptTemplate();
-      if (prompts.isCancel(selectedTemplate)) {
+      // Interactive mode: prompt for language and mode
+      const choices = await prompts.promptLanguageAndMode();
+      if (prompts.isCancel(choices)) {
         display.cancel('prompt.cancel.sketchCreation');
       }
+      [selectedLanguage, selectedP5Mode] = choices;
+      selectedTemplate = null;
     }
 
     // Determine version (flag or prompt)
@@ -209,20 +239,25 @@ export async function scaffold(args) {
 
 
     // Show summary of choices if not using --yes flag
-    if (!args.yes && (args.template || args.version || args.mode || args.git || args.types === false)) {
+    if (!args.yes && (args.template || args.language || args['p5-mode'] || args.version || args.mode || args.git || args.types === false)) {
       display.message('');
       const configLines = [
         'info.config.header',
-        'info.config.projectName',
-        'info.config.template',
+        'info.config.projectName'
+      ];
+      if (selectedLanguage) {
+        configLines.push('info.config.language', 'info.config.p5Mode');
+      }
+      configLines.push(
         'info.config.version',
         'info.config.mode',
         args.git ? 'info.config.git.yes' : 'info.config.git.no',
         args.types === false ? 'info.config.types.no' : 'info.config.types.yes'
-      ];
+      );
       configLines.forEach(key => display.info(key, {
         name: projectName,
-        template: selectedTemplate,
+        language: selectedLanguage,
+        p5Mode: selectedP5Mode,
         version: selectedVersion,
         mode: selectedMode
       }));
@@ -230,7 +265,8 @@ export async function scaffold(args) {
     }
 
     // Copy or fetch template files (local built-in templates or remote templates)
-    if (isRemoteTemplateSpec(selectedTemplate)) {
+    if (selectedTemplate) {
+      // Community template - fetch from remote
       if (args.verbose) {
         const copySpinner = display.spinner('spinner.fetchingRemoteTemplate');
         const spec = normalizeTemplateSpec(selectedTemplate);
@@ -252,8 +288,9 @@ export async function scaffold(args) {
         }
       }
     } else {
-      // Set up paths based on selected template
-      const templatePath = path.join(__dirname, '..', '..', 'templates', selectedTemplate);
+      // Built-in template - use language and mode to determine template directory
+      const templateDir = getTemplateName(selectedLanguage, selectedP5Mode);
+      const templatePath = path.join(__dirname, '..', '..', 'templates', templateDir);
 
       // Copy template files
       if (args.verbose) {
@@ -313,11 +350,13 @@ export async function scaffold(args) {
       const typesPath = path.join(targetPath, 'types');
       await fs.mkdir(typesPath, { recursive: true });
       try {
+        // Determine template mode for type definitions (global vs instance)
+        const templateMode = selectedP5Mode || 'global'; // Default to global if using community template
         if (args.verbose) {
           const typesSpinner = display.spinner('spinner.downloadingTypes');
-          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, typesSpinner, selectedTemplate);
+          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, typesSpinner, templateMode);
         } else {
-          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, null, selectedTemplate);
+          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, null, templateMode);
         }
       } catch (error) {
         display.warn('error.fetchVersions.failed');
@@ -335,7 +374,8 @@ export async function scaffold(args) {
     await createConfig(configPath, {
       version: selectedVersion,
       mode: selectedMode,
-      template: selectedTemplate,
+      language: selectedLanguage,
+      p5Mode: selectedP5Mode,
       typeDefsVersion
     });
 
@@ -344,11 +384,15 @@ export async function scaffold(args) {
 
     // Build project summary
     const summaryLines = [
-      'note.projectSummary.name',
-      'note.projectSummary.template',
+      'note.projectSummary.name'
+    ];
+    if (selectedLanguage) {
+      summaryLines.push('note.projectSummary.language', 'note.projectSummary.p5Mode');
+    }
+    summaryLines.push(
       'note.projectSummary.version',
       'note.projectSummary.mode'
-    ];
+    );
     if (typeDefsVersion) {
       summaryLines.push('note.projectSummary.types');
     }
@@ -357,7 +401,8 @@ export async function scaffold(args) {
     }
     display.note(summaryLines, 'note.projectSummary.title', {
       name: projectName,
-      template: selectedTemplate,
+      language: selectedLanguage,
+      p5Mode: selectedP5Mode,
       version: selectedVersion,
       mode: selectedMode,
       types: typeDefsVersion
@@ -374,8 +419,8 @@ export async function scaffold(args) {
     ];
     display.note(nextStepsLines, 'note.nextSteps.title', { projectName });
 
-    // Template-specific tips
-    if (selectedTemplate === 'typescript') {
+    // Language and mode-specific tips
+    if (selectedLanguage === 'typescript') {
       const tipsLines = [
         'note.typescriptTips.editor',
         'note.typescriptTips.install',
@@ -384,7 +429,7 @@ export async function scaffold(args) {
       display.note(tipsLines, 'note.typescriptTips.title');
     }
 
-    if (selectedTemplate === 'instance') {
+    if (selectedP5Mode === 'instance') {
       const tipsLines = [
         'note.instanceTips.multiple',
         'note.instanceTips.usage'
