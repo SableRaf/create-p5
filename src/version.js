@@ -196,8 +196,8 @@ export async function downloadTypeDefinitions(p5Version, targetDir, spinner = nu
       // p5.js 2.x: Download bundled types with simple fallback
       let typesVersion = p5Version;
 
-      // Hardcoded fallback for 2.0.0, 2.0.0-* (pre-releases), and 2.0.1
-      if (p5Version === '2.0.0' || p5Version === '2.0.1' || p5Version.startsWith('2.0.0-')) {
+      // Hardcoded fallback for 2.0.0, 2.0.1, and any pre-releases thereof
+      if (p5Version.startsWith('2.0.0') || p5Version.startsWith('2.0.1')) {
         typesVersion = '2.0.2';
       }
 
