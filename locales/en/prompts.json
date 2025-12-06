@@ -5,10 +5,10 @@
   "prompt.projectPath.error.invalidChars": "Path contains invalid characters",
 
   "prompt.customize.message": "How would you like to set up your project?",
-  "prompt.customize.option.no.label": "Standard",
-  "prompt.customize.option.no.hint": "Uses recommended defaults",
-  "prompt.customize.option.yes.label": "Yes",
-  "prompt.customize.option.yes.hint": "Lets you select a p5.js version, mode, and language",
+  "prompt.customize.option.no.label": "Quick start",
+  "prompt.customize.option.no.hint": "Creates a project with default settings",
+  "prompt.customize.option.yes.label": "Configure manually",
+  "prompt.customize.option.yes.hint": "Choose p5.js version, mode, and additional options",
 
   "prompt.languageMode.message": "Select language and mode:",
   "prompt.languageMode.group.language.label": "Language",
