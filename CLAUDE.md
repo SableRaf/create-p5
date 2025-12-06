@@ -49,7 +49,11 @@ create-p5/
 │   ├── instance/            # Instance mode for multiple sketches
 │   ├── typescript/          # TypeScript setup with type definitions
 │   └── empty/               # Minimal HTML only
-└── tests/
+├── tests/
+└── types/
+    └── default/
+        └── v1/
+            └── global.d.ts   # Minimal type definitions for p5.js 1.x
 ```
 
 ## Key Dependencies
