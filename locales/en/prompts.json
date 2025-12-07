@@ -1,5 +1,5 @@
 {
-  "prompt.projectPath.message": "Where should we create your p5.js sketch?",
+  "prompt.projectPath.message": "What should we name your p5.js sketch?",
   "prompt.projectPath.placeholder": ". (current directory)",
   "prompt.projectPath.error.absolutePath": "Please use a relative path (e.g., \"./my-sketch\" or \"my-sketch\")",
   "prompt.projectPath.error.invalidChars": "Path contains invalid characters (< > : \" | ? * / \\ or control characters). Use letters, numbers, hyphens, and underscores.",

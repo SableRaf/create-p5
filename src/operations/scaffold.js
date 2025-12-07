@@ -47,7 +47,7 @@ export async function scaffold(args) {
   } else {
     // Interactive mode: prompt for path
     const randomName = generateProjectName();
-    projectPath = await prompts.promptProjectPath(`./${randomName}`);
+    projectPath = await prompts.promptProjectPath(`${randomName}`);
     if (prompts.isCancel(projectPath)) {
       display.cancel('prompt.cancel.sketchCreation');
     }
