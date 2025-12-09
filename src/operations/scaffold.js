@@ -467,9 +467,20 @@ export async function scaffold(args) {
       display.note(gitTipsLines, 'note.gitTips.title');
     }
   } catch (error) {
+    // Check if this is a validation error (incompatible flags, invalid template, etc.)
+    const isValidationError = error.message.includes('cannot be used with') ||
+                              error.message.includes('only accepts community templates');
+
     display.message('');
-    display.error('error.fetchVersions.failed');
-    display.message(error.message);
+
+    if (isValidationError) {
+      // For validation errors, show the error message directly with red styling
+      display.message(display.styleRed('■  ' + error.message));
+    } else {
+      // For other errors (network, file system, etc.), show generic error header
+      display.error('error.fetchVersions.failed');
+      display.message(error.message);
+    }
 
     if (args.verbose) {
       display.message('');
@@ -489,12 +500,15 @@ export async function scaffold(args) {
       display.message(cleanupError.message);
     }
 
-    const helpLines = [
-      'error.persistHelp.verbose',
-      'error.persistHelp.permissions',
-      'error.persistHelp.issues'
-    ];
-    display.note(helpLines, 'error.persistHelp.title');
+    // Only show generic help tips for non-validation errors
+    if (!isValidationError) {
+      const helpLines = [
+        'error.persistHelp.verbose',
+        'error.persistHelp.permissions',
+        'error.persistHelp.issues'
+      ];
+      display.note(helpLines, 'error.persistHelp.title');
+    }
 
     display.message('');
     display.message(t('note.success.failed'));

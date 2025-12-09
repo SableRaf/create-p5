@@ -41,7 +41,8 @@ vi.mock('../src/ui/display.js', () => ({
   cancel: vi.fn(),
   spinner: vi.fn(() => ({
     stop: vi.fn()
-  }))
+  })),
+  styleRed: vi.fn(text => text) // Mock styleRed to just return the text
 }));
 
 vi.mock('../src/ui/prompts.js', () => ({
@@ -122,8 +123,6 @@ describe('scaffold --template flag validation', () => {
 
     await scaffold(args);
 
-    // Should have called error display function
-    expect(display.error).toHaveBeenCalled();
     // Find the message call that contains the error
     const errorMessage = display.message.mock.calls.find(call =>
       call[0] && call[0].includes('cannot be used with --template')
@@ -143,7 +142,6 @@ describe('scaffold --template flag validation', () => {
 
     await scaffold(args);
 
-    expect(display.error).toHaveBeenCalled();
     const errorMessage = display.message.mock.calls.find(call =>
       call[0] && call[0].includes('cannot be used with --template')
     );
@@ -162,7 +160,6 @@ describe('scaffold --template flag validation', () => {
 
     await scaffold(args);
 
-    expect(display.error).toHaveBeenCalled();
     const errorMessage = display.message.mock.calls.find(call =>
       call[0] && call[0].includes('cannot be used with --template')
     );
@@ -181,7 +178,6 @@ describe('scaffold --template flag validation', () => {
 
     await scaffold(args);
 
-    expect(display.error).toHaveBeenCalled();
     const errorMessage = display.message.mock.calls.find(call =>
       call[0] && call[0].includes('cannot be used with --template')
     );
@@ -202,7 +198,6 @@ describe('scaffold --template flag validation', () => {
 
     await scaffold(args);
 
-    expect(display.error).toHaveBeenCalled();
     const errorMessage = display.message.mock.calls.find(call =>
       call[0] && call[0].includes('cannot be used with --template')
     );
