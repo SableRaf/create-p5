@@ -2,20 +2,36 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { scaffold } from '../src/operations/scaffold.js';
 import * as display from '../src/ui/display.js';
 import * as prompts from '../src/ui/prompts.js';
-import { fetchTemplate } from '../templateFetcher.js';
+import { fetchTemplate } from '../src/templateFetcher.js';
 import fs from 'fs/promises';
 
 // Mock all UI and external dependencies
+vi.mock('../src/i18n/index.js', () => ({
+  t: vi.fn((key, vars) => {
+    // Simple mock that returns the key with variables interpolated
+    let result = key;
+    if (vars) {
+      Object.keys(vars).forEach(k => {
+        result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), vars[k]);
+      });
+    }
+    return result;
+  }),
+  setLocale: vi.fn(),
+  getLocale: vi.fn(() => 'en'),
+  detectLocale: vi.fn(() => 'en')
+}));
+
 vi.mock('../src/ui/display.js', () => ({
   intro: vi.fn(),
-  outro: vi.fn(() => process.exit(0)),
+  outro: vi.fn(),
   info: vi.fn(),
   error: vi.fn(),
   success: vi.fn(),
   warn: vi.fn(),
   message: vi.fn(),
   note: vi.fn(),
-  cancel: vi.fn(() => process.exit(0)),
+  cancel: vi.fn(),
   spinner: vi.fn(() => ({
     stop: vi.fn()
   }))
@@ -30,8 +46,8 @@ vi.mock('../src/ui/prompts.js', () => ({
   isCancel: vi.fn(() => false)
 }));
 
-vi.mock('../templateFetcher.js', () => ({
-  fetchTemplate: vi.fn(),
+vi.mock('../src/templateFetcher.js', () => ({
+  fetchTemplate: vi.fn(async () => {}),
   normalizeTemplateSpec: vi.fn(spec => spec)
 }));
 
@@ -77,17 +93,19 @@ vi.mock('../src/utils.js', async (importOriginal) => {
 });
 
 describe('scaffold --template flag validation', () => {
+  let exitSpy;
+
   beforeEach(() => {
     vi.clearAllMocks();
     // Mock process.exit to prevent tests from actually exiting
-    vi.spyOn(process, 'exit').mockImplementation(() => {});
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('should throw error when --template is used with --version', async () => {
+  it('should fail when --template is used with --version', async () => {
     const args = {
       _: ['test-sketch'],
       template: 'user/repo',
@@ -95,10 +113,20 @@ describe('scaffold --template flag validation', () => {
       yes: true
     };
 
-    await expect(scaffold(args)).rejects.toThrow(/templateIncompatibleFlags/);
+    await scaffold(args);
+
+    // Should have called error display function
+    expect(display.error).toHaveBeenCalled();
+    // Find the message call that contains the error
+    const errorMessage = display.message.mock.calls.find(call =>
+      call[0] && call[0].includes('cannot be used with --template')
+    );
+    expect(errorMessage).toBeTruthy();
+    expect(errorMessage[0]).toMatch(/--version/);
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('should throw error when --template is used with --mode', async () => {
+  it('should fail when --template is used with --mode', async () => {
     const args = {
       _: ['test-sketch'],
       template: 'user/repo',
@@ -106,10 +134,18 @@ describe('scaffold --template flag validation', () => {
       yes: true
     };
 
-    await expect(scaffold(args)).rejects.toThrow(/templateIncompatibleFlags/);
+    await scaffold(args);
+
+    expect(display.error).toHaveBeenCalled();
+    const errorMessage = display.message.mock.calls.find(call =>
+      call[0] && call[0].includes('cannot be used with --template')
+    );
+    expect(errorMessage).toBeTruthy();
+    expect(errorMessage[0]).toMatch(/--mode/);
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('should throw error when --template is used with --language', async () => {
+  it('should fail when --template is used with --language', async () => {
     const args = {
       _: ['test-sketch'],
       template: 'user/repo',
@@ -117,10 +153,18 @@ describe('scaffold --template flag validation', () => {
       yes: true
     };
 
-    await expect(scaffold(args)).rejects.toThrow(/templateIncompatibleFlags/);
+    await scaffold(args);
+
+    expect(display.error).toHaveBeenCalled();
+    const errorMessage = display.message.mock.calls.find(call =>
+      call[0] && call[0].includes('cannot be used with --template')
+    );
+    expect(errorMessage).toBeTruthy();
+    expect(errorMessage[0]).toMatch(/--language/);
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('should throw error when --template is used with --p5-mode', async () => {
+  it('should fail when --template is used with --p5-mode', async () => {
     const args = {
       _: ['test-sketch'],
       template: 'user/repo',
@@ -128,10 +172,18 @@ describe('scaffold --template flag validation', () => {
       yes: true
     };
 
-    await expect(scaffold(args)).rejects.toThrow(/templateIncompatibleFlags/);
+    await scaffold(args);
+
+    expect(display.error).toHaveBeenCalled();
+    const errorMessage = display.message.mock.calls.find(call =>
+      call[0] && call[0].includes('cannot be used with --template')
+    );
+    expect(errorMessage).toBeTruthy();
+    expect(errorMessage[0]).toMatch(/--p5-mode/);
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
-  it('should throw error when --template is used with multiple config flags', async () => {
+  it('should fail when --template is used with multiple config flags', async () => {
     const args = {
       _: ['test-sketch'],
       template: 'user/repo',
@@ -141,11 +193,17 @@ describe('scaffold --template flag validation', () => {
       yes: true
     };
 
-    const error = await scaffold(args).catch(e => e);
-    expect(error.message).toMatch(/templateIncompatibleFlags/);
-    expect(error.message).toMatch(/--version/);
-    expect(error.message).toMatch(/--mode/);
-    expect(error.message).toMatch(/--language/);
+    await scaffold(args);
+
+    expect(display.error).toHaveBeenCalled();
+    const errorMessage = display.message.mock.calls.find(call =>
+      call[0] && call[0].includes('cannot be used with --template')
+    );
+    expect(errorMessage).toBeTruthy();
+    expect(errorMessage[0]).toMatch(/--version/);
+    expect(errorMessage[0]).toMatch(/--mode/);
+    expect(errorMessage[0]).toMatch(/--language/);
+    expect(exitSpy).toHaveBeenCalledWith(1);
   });
 
   it('should succeed when --template is used alone', async () => {
@@ -155,9 +213,6 @@ describe('scaffold --template flag validation', () => {
       yes: true
     };
 
-    // Mock fetchTemplate to resolve successfully
-    fetchTemplate.mockResolvedValueOnce();
-
     await scaffold(args);
 
     // Verify fetchTemplate was called
@@ -166,6 +221,10 @@ describe('scaffold --template flag validation', () => {
       expect.any(String),
       expect.objectContaining({ verbose: undefined })
     );
+    // Should not have displayed an error
+    expect(display.error).not.toHaveBeenCalled();
+    // Display outro should have been called (successful exit)
+    expect(display.outro).toHaveBeenCalled();
   });
 
   it('should succeed when --template is used with --yes flag', async () => {
@@ -175,13 +234,14 @@ describe('scaffold --template flag validation', () => {
       yes: true
     };
 
-    // Mock fetchTemplate to resolve successfully
-    fetchTemplate.mockResolvedValueOnce();
-
     await scaffold(args);
 
     // Verify fetchTemplate was called
     expect(fetchTemplate).toHaveBeenCalled();
+    // Should not have displayed an error
+    expect(display.error).not.toHaveBeenCalled();
+    // Display outro should have been called (successful exit)
+    expect(display.outro).toHaveBeenCalled();
   });
 
   it('should succeed when --template is used with --verbose flag', async () => {
@@ -192,9 +252,6 @@ describe('scaffold --template flag validation', () => {
       yes: true
     };
 
-    // Mock fetchTemplate to resolve successfully
-    fetchTemplate.mockResolvedValueOnce();
-
     await scaffold(args);
 
     // Verify fetchTemplate was called with verbose flag
@@ -203,5 +260,9 @@ describe('scaffold --template flag validation', () => {
       expect.any(String),
       expect.objectContaining({ verbose: true })
     );
+    // Should not have displayed an error
+    expect(display.error).not.toHaveBeenCalled();
+    // Display outro should have been called (successful exit)
+    expect(display.outro).toHaveBeenCalled();
   });
 });
