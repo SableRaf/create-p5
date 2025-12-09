@@ -467,7 +467,6 @@ export async function scaffold(args) {
       display.note(gitTipsLines, 'note.gitTips.title');
     }
   } catch (error) {
-    display.outro(t('note.success.failed'));
     display.message('');
     display.error('error.fetchVersions.failed');
     display.message(error.message);
@@ -497,6 +496,8 @@ export async function scaffold(args) {
     ];
     display.note(helpLines, 'error.persistHelp.title');
 
+    display.message('');
+    display.message(t('note.success.failed'));
     process.exit(1);
   }
 }
