@@ -115,7 +115,51 @@ export async function scaffold(args) {
   }
 
   try {
-    // Fetch available p5.js versions
+    // Handle community templates early - they don't need version/mode selection
+    if (args.template) {
+      // Validate that template is a remote spec
+      if (!isRemoteTemplateSpec(args.template)) {
+        throw new Error(t('error.templateMustBeRemote', { template: args.template }));
+      }
+
+      // Check for incompatible config flags
+      const incompatibleFlags = ['version', 'mode', 'language', 'p5-mode'];
+      const usedFlags = incompatibleFlags.filter(flag => args[flag]);
+
+      if (usedFlags.length > 0) {
+        const flagList = usedFlags.map(f => `--${f}`).join(', ');
+        throw new Error(t('error.templateIncompatibleFlags') + ` Used: ${flagList}`);
+      }
+
+      // Community template - fetch from remote and exit early
+      // We don't modify community templates - just clone them
+      const copySpinner = args.verbose ? display.spinner('spinner.fetchingRemoteTemplate') : null;
+      if (args.verbose) {
+        const spec = normalizeTemplateSpec(args.template);
+        display.info('note.verbose.remoteTemplateSpec', { spec });
+        display.info('note.verbose.targetPath', { path: targetPath });
+      }
+      try {
+        await fetchTemplate(args.template, targetPath, { verbose: args.verbose });
+        if (copySpinner) copySpinner.stop('spinner.fetchedRemoteTemplate');
+      } catch (err) {
+        if (copySpinner) copySpinner.stop('spinner.failedRemoteTemplate');
+        throw new Error(t('error.fetchTemplate', { template: args.template, error: err.message }));
+      }
+
+      // Success! Community templates are used as-is, no modifications
+      // Show next steps before outro
+      const nextStepsLines = [
+        'note.nextSteps.step1',
+        'note.communityTemplate.checkReadme'
+      ];
+      display.note(nextStepsLines, 'note.nextSteps.title', { projectName });
+
+      // outro() exits the process - nothing after this executes
+      display.outro(t('note.success.created'));
+    }
+
+    // Fetch available p5.js versions (only for built-in templates)
     let latest, versions;
     if (args.verbose) {
       const s = display.spinner('spinner.fetchingVersions');
@@ -156,7 +200,7 @@ export async function scaffold(args) {
       }
     }
 
-    // Validate all flags immediately after fetching versions (before any prompts)
+    // Validate config flags (only for built-in templates)
     if (args.language) {
       const langError = validateLanguage(args.language);
       if (langError) {
@@ -168,13 +212,6 @@ export async function scaffold(args) {
       const p5ModeError = validateP5Mode(args['p5-mode']);
       if (p5ModeError) {
         throw new Error(p5ModeError);
-      }
-    }
-
-    if (args.template) {
-      // --template flag now ONLY for community templates
-      if (!isRemoteTemplateSpec(args.template)) {
-        throw new Error(t('error.templateMustBeRemote', { template: args.template }));
       }
     }
 
@@ -190,36 +227,6 @@ export async function scaffold(args) {
       if (modeError) {
         throw new Error(modeError);
       }
-    }
-
-    // Handle community templates early - they don't need version/mode selection
-    if (args.template) {
-      // Community template - fetch from remote and exit early
-      // We don't modify community templates - just clone them
-      const copySpinner = args.verbose ? display.spinner('spinner.fetchingRemoteTemplate') : null;
-      if (args.verbose) {
-        const spec = normalizeTemplateSpec(args.template);
-        display.info('note.verbose.remoteTemplateSpec', { spec });
-        display.info('note.verbose.targetPath', { path: targetPath });
-      }
-      try {
-        await fetchTemplate(args.template, targetPath, { verbose: args.verbose });
-        if (copySpinner) copySpinner.stop('spinner.fetchedRemoteTemplate');
-      } catch (err) {
-        if (copySpinner) copySpinner.stop('spinner.failedRemoteTemplate');
-        throw new Error(t('error.fetchTemplate', { template: args.template, error: err.message }));
-      }
-
-      // Success! Community templates are used as-is, no modifications
-      // Show next steps before outro
-      const nextStepsLines = [
-        'note.nextSteps.step1',
-        'note.communityTemplate.checkReadme'
-      ];
-      display.note(nextStepsLines, 'note.nextSteps.title', { projectName });
-
-      // outro() exits the process - nothing after this executes
-      display.outro(t('note.success.created'));
     }
 
     // Built-in templates: determine version (flag, default, or prompt)
