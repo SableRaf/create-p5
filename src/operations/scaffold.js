@@ -16,12 +16,12 @@ import * as display from '../ui/display.js';
 import * as prompts from '../ui/prompts.js';
 
 // Business utilities
-import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, getTemplateName, generateProjectName, isRemoteTemplateSpec as isRemoteTemplateSpecUtil } from '../utils.js';
+import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, getTemplateName, generateProjectName, isRemoteTemplateSpec } from '../utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
 import { createConfig } from '../config.js';
 import { initGit, addLibToGitignore } from '../git.js';
-import { isRemoteTemplateSpec, normalizeTemplateSpec, fetchTemplate } from '../templateFetcher.js';
+import { normalizeTemplateSpec, fetchTemplate } from '../templateFetcher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -173,7 +173,7 @@ export async function scaffold(args) {
 
     if (args.template) {
       // --template flag now ONLY for community templates
-      if (!isRemoteTemplateSpecUtil(args.template)) {
+      if (!isRemoteTemplateSpec(args.template)) {
         throw new Error(t('error.templateMustBeRemote', { template: args.template }));
       }
     }
@@ -192,7 +192,37 @@ export async function scaffold(args) {
       }
     }
 
-    // Determine version (flag, default, or prompt)
+    // Handle community templates early - they don't need version/mode selection
+    if (args.template) {
+      // Community template - fetch from remote and exit early
+      // We don't modify community templates - just clone them
+      const copySpinner = args.verbose ? display.spinner('spinner.fetchingRemoteTemplate') : null;
+      if (args.verbose) {
+        const spec = normalizeTemplateSpec(args.template);
+        display.info('note.verbose.remoteTemplateSpec', { spec });
+        display.info('note.verbose.targetPath', { path: targetPath });
+      }
+      try {
+        await fetchTemplate(args.template, targetPath, { verbose: args.verbose });
+        if (copySpinner) copySpinner.stop('spinner.fetchedRemoteTemplate');
+      } catch (err) {
+        if (copySpinner) copySpinner.stop('spinner.failedRemoteTemplate');
+        throw new Error(t('error.fetchTemplate', { template: args.template, error: err.message }));
+      }
+
+      // Success! Community templates are used as-is, no modifications
+      // Show next steps before outro
+      const nextStepsLines = [
+        'note.nextSteps.step1',
+        'note.communityTemplate.checkReadme'
+      ];
+      display.note(nextStepsLines, 'note.nextSteps.title', { projectName });
+
+      // outro() exits the process - nothing after this executes
+      display.outro(t('note.success.created'));
+    }
+
+    // Built-in templates: determine version (flag, default, or prompt)
     let selectedVersion;
     if (args.version) {
       selectedVersion = args.version === 'latest' ? latest : args.version;
@@ -209,7 +239,7 @@ export async function scaffold(args) {
       }
     }
 
-    // Determine delivery mode (flag, default, or prompt)
+    // Built-in templates: determine delivery mode (flag, default, or prompt)
     let selectedMode;
     if (args.mode) {
       selectedMode = args.mode;
@@ -226,26 +256,18 @@ export async function scaffold(args) {
       }
     }
 
-    // Determine language, p5Mode, and template
-    let selectedLanguage, selectedP5Mode, selectedTemplate;
+    // Determine language and p5Mode for built-in templates
+    let selectedLanguage, selectedP5Mode;
 
-    if (args.template) {
-      // Community template - skip language/mode prompts
-      selectedTemplate = args.template;
-      selectedLanguage = null;
-      selectedP5Mode = null;
-      display.success('info.usingCommunityTemplate', { template: selectedTemplate });
-    } else if (args.language && args['p5-mode']) {
+    if (args.language && args['p5-mode']) {
       // Non-interactive with flags
       selectedLanguage = args.language;
       selectedP5Mode = args['p5-mode'];
-      selectedTemplate = null;
       display.success('info.usingLanguageMode', { language: selectedLanguage, p5Mode: selectedP5Mode });
     } else if (!shouldCustomize) {
       // Use defaults: JavaScript + Global mode (when not customizing)
       selectedLanguage = 'javascript';
       selectedP5Mode = 'global';
-      selectedTemplate = null;
       display.success('info.defaultLanguageMode');
     } else {
       // Interactive customization mode: prompt for language and mode
@@ -254,12 +276,11 @@ export async function scaffold(args) {
         display.cancel('prompt.cancel.sketchCreation');
       }
       [selectedLanguage, selectedP5Mode] = choices;
-      selectedTemplate = null;
     }
 
 
     // Show summary of choices if not using --yes flag
-    if (!args.yes && (args.template || args.language || args['p5-mode'] || args.version || args.mode || args.git || args.types === false)) {
+    if (!args.yes && (args.language || args['p5-mode'] || args.version || args.mode || args.git || args.types === false)) {
       display.message('');
       const configLines = [
         'info.config.header',
@@ -284,44 +305,18 @@ export async function scaffold(args) {
       display.message('');
     }
 
-    // Copy or fetch template files (local built-in templates or remote templates)
-    if (selectedTemplate) {
-      // Community template - fetch from remote
-      if (args.verbose) {
-        const copySpinner = display.spinner('spinner.fetchingRemoteTemplate');
-        const spec = normalizeTemplateSpec(selectedTemplate);
-        display.info('note.verbose.remoteTemplateSpec', { spec });
-        display.info('note.verbose.targetPath', { path: targetPath });
+    // Copy built-in template files
+    const templateDir = getTemplateName(selectedLanguage, selectedP5Mode);
+    const templatePath = path.join(__dirname, '..', '..', 'templates', templateDir);
 
-        try {
-          await fetchTemplate(selectedTemplate, targetPath, { verbose: args.verbose });
-          copySpinner.stop('spinner.fetchedRemoteTemplate');
-        } catch (err) {
-          copySpinner.stop('spinner.failedRemoteTemplate');
-          throw new Error(t('error.fetchTemplate', { template: selectedTemplate, error: err.message }));
-        }
-      } else {
-        try {
-          await fetchTemplate(selectedTemplate, targetPath, { verbose: args.verbose });
-        } catch (err) {
-          throw new Error(t('error.fetchTemplate', { template: selectedTemplate, error: err.message }));
-        }
-      }
+    if (args.verbose) {
+      const copySpinner = display.spinner('spinner.copyingTemplate');
+      display.info('note.verbose.templatePath', { path: templatePath });
+      display.info('note.verbose.targetPath', { path: targetPath });
+      await copyTemplateFiles(templatePath, targetPath);
+      copySpinner.stop('spinner.copiedTemplate');
     } else {
-      // Built-in template - use language and mode to determine template directory
-      const templateDir = getTemplateName(selectedLanguage, selectedP5Mode);
-      const templatePath = path.join(__dirname, '..', '..', 'templates', templateDir);
-
-      // Copy template files
-      if (args.verbose) {
-        const copySpinner = display.spinner('spinner.copyingTemplate');
-        display.info('note.verbose.templatePath', { path: templatePath });
-        display.info('note.verbose.targetPath', { path: targetPath });
-        await copyTemplateFiles(templatePath, targetPath);
-        copySpinner.stop('spinner.copiedTemplate');
-      } else {
-        await copyTemplateFiles(templatePath, targetPath);
-      }
+      await copyTemplateFiles(templatePath, targetPath);
     }
 
     // Initialize git repository if requested (do this before other file operations)

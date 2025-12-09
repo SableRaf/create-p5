@@ -16,6 +16,8 @@
   "note.nextSteps.examples": "• Examples: https://p5js.org/examples/",
   "note.nextSteps.update": "• Update project: npx create-p5 update",
 
+  "note.communityTemplate.checkReadme": "2. Check the template's README for setup instructions",
+
   "note.typescriptTips.title": "TypeScript Tips",
   "note.typescriptTips.editor": "• Use a TypeScript-aware editor like VS Code",
   "note.typescriptTips.install": "• Install TypeScript: npm install -g typescript",
