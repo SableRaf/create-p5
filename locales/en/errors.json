@@ -17,6 +17,7 @@
 
   "error.fetchTemplate": "Failed to fetch remote template \"{template}\": {error}",
   "error.templateMustBeRemote": "The --template flag now only accepts community templates (GitHub repos like 'user/repo'). Built-in templates have been replaced by --language and --p5-mode flags.",
+  "error.templateIncompatibleFlags": "Configuration flags (--version, --mode, --language, --p5-mode) cannot be used with --template. Community templates cannot be automatically customized.",
   "error.cleanup": "Cleaning up...",
 
   "error.persistHelp.title": "If the problem persists:",
