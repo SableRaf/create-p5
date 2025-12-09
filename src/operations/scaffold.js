@@ -196,25 +196,18 @@ export async function scaffold(args) {
     if (args.template) {
       // Community template - fetch from remote and exit early
       // We don't modify community templates - just clone them
+      const copySpinner = args.verbose ? display.spinner('spinner.fetchingRemoteTemplate') : null;
       if (args.verbose) {
-        const copySpinner = display.spinner('spinner.fetchingRemoteTemplate');
         const spec = normalizeTemplateSpec(args.template);
         display.info('note.verbose.remoteTemplateSpec', { spec });
         display.info('note.verbose.targetPath', { path: targetPath });
-
-        try {
-          await fetchTemplate(args.template, targetPath, { verbose: args.verbose });
-          copySpinner.stop('spinner.fetchedRemoteTemplate');
-        } catch (err) {
-          copySpinner.stop('spinner.failedRemoteTemplate');
-          throw new Error(t('error.fetchTemplate', { template: args.template, error: err.message }));
-        }
-      } else {
-        try {
-          await fetchTemplate(args.template, targetPath, { verbose: args.verbose });
-        } catch (err) {
-          throw new Error(t('error.fetchTemplate', { template: args.template, error: err.message }));
-        }
+      }
+      try {
+        await fetchTemplate(args.template, targetPath, { verbose: args.verbose });
+        if (copySpinner) copySpinner.stop('spinner.fetchedRemoteTemplate');
+      } catch (err) {
+        if (copySpinner) copySpinner.stop('spinner.failedRemoteTemplate');
+        throw new Error(t('error.fetchTemplate', { template: args.template, error: err.message }));
       }
 
       // Success! Community templates are used as-is, no modifications
