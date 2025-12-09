@@ -16,12 +16,12 @@ import * as display from '../ui/display.js';
 import * as prompts from '../ui/prompts.js';
 
 // Business utilities
-import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, getTemplateName, generateProjectName, isRemoteTemplateSpec as isRemoteTemplateSpecUtil } from '../utils.js';
+import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, getTemplateName, generateProjectName, isRemoteTemplateSpec } from '../utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
 import { createConfig } from '../config.js';
 import { initGit, addLibToGitignore } from '../git.js';
-import { isRemoteTemplateSpec, normalizeTemplateSpec, fetchTemplate } from '../templateFetcher.js';
+import { normalizeTemplateSpec, fetchTemplate } from '../templateFetcher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -173,7 +173,7 @@ export async function scaffold(args) {
 
     if (args.template) {
       // --template flag now ONLY for community templates
-      if (!isRemoteTemplateSpecUtil(args.template)) {
+      if (!isRemoteTemplateSpec(args.template)) {
         throw new Error(t('error.templateMustBeRemote', { template: args.template }));
       }
     }
@@ -196,11 +196,15 @@ export async function scaffold(args) {
     let selectedVersion;
     if (args.version) {
       selectedVersion = args.version === 'latest' ? latest : args.version;
-      display.success('info.usingVersion', { version: selectedVersion });
-    } else if (!shouldCustomize) {
-      // Use default (latest) when not customizing
+      if (!args.template) {
+        display.success('info.usingVersion', { version: selectedVersion });
+      }
+    } else if (!shouldCustomize || args.template) {
+      // Use default (latest) when not customizing OR when using community template
       selectedVersion = latest;
-      display.success('info.latestVersion', { version: latest });
+      if (!args.template) {
+        display.success('info.latestVersion', { version: latest });
+      }
     } else {
       // Interactive customization mode
       selectedVersion = await prompts.promptVersion(versions, latest);
@@ -213,11 +217,15 @@ export async function scaffold(args) {
     let selectedMode;
     if (args.mode) {
       selectedMode = args.mode;
-      display.success('info.usingMode', { mode: selectedMode });
-    } else if (!shouldCustomize) {
-      // Use default (cdn) when not customizing
+      if (!args.template) {
+        display.success('info.usingMode', { mode: selectedMode });
+      }
+    } else if (!shouldCustomize || args.template) {
+      // Use default (cdn) when not customizing OR when using community template
       selectedMode = 'cdn';
-      display.success('info.defaultMode');
+      if (!args.template) {
+        display.success('info.defaultMode');
+      }
     } else {
       // Interactive customization mode
       selectedMode = await prompts.promptMode();
@@ -259,7 +267,8 @@ export async function scaffold(args) {
 
 
     // Show summary of choices if not using --yes flag
-    if (!args.yes && (args.template || args.language || args['p5-mode'] || args.version || args.mode || args.git || args.types === false)) {
+    // Skip summary for community templates - we don't modify them
+    if (!args.yes && !selectedTemplate && (args.language || args['p5-mode'] || args.version || args.mode || args.git || args.types === false)) {
       display.message('');
       const configLines = [
         'info.config.header',
@@ -286,7 +295,8 @@ export async function scaffold(args) {
 
     // Copy or fetch template files (local built-in templates or remote templates)
     if (selectedTemplate) {
-      // Community template - fetch from remote
+      // Community template - fetch from remote and exit early
+      // We don't modify community templates - just clone them
       if (args.verbose) {
         const copySpinner = display.spinner('spinner.fetchingRemoteTemplate');
         const spec = normalizeTemplateSpec(selectedTemplate);
@@ -307,6 +317,17 @@ export async function scaffold(args) {
           throw new Error(t('error.fetchTemplate', { template: selectedTemplate, error: err.message }));
         }
       }
+
+      // Success! Community templates are used as-is, no modifications
+      // Show next steps before outro (outro calls process.exit)
+      const nextStepsLines = [
+        'note.nextSteps.step1',
+        'note.communityTemplate.checkReadme'
+      ];
+      display.note(nextStepsLines, 'note.nextSteps.title', { projectName });
+
+      display.outro(t('note.success.created'));
+      return; // Early return - don't modify community templates (unreachable due to outro exit)
     } else {
       // Built-in template - use language and mode to determine template directory
       const templateDir = getTemplateName(selectedLanguage, selectedP5Mode);
