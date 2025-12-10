@@ -50,22 +50,27 @@ export async function promptProjectPath(initialValue) {
 }
 
 /**
- * Prompt for whether to customize project configuration
- * @returns {Promise<boolean>} True if user wants to customize, false for defaults
+ * Prompt for setup type selection
+ * @returns {Promise<string>} Selected setup type ('basic', 'standard', or 'custom')
  */
-export async function promptCustomize() {
+export async function promptSetupType() {
   const result = await p.select({
-    message: t('prompt.customize.message'),
+    message: t('prompt.setupType.message'),
     options: [
       {
-        value: false,
-        label: t('prompt.customize.option.no.label'),
-        hint: t('prompt.customize.option.no.hint')
+        value: 'basic',
+        label: t('prompt.setupType.option.basic.label'),
+        hint: t('prompt.setupType.option.basic.hint')
       },
       {
-        value: true,
-        label: t('prompt.customize.option.yes.label'),
-        hint: t('prompt.customize.option.yes.hint')
+        value: 'standard',
+        label: t('prompt.setupType.option.standard.label'),
+        hint: t('prompt.setupType.option.standard.hint')
+      },
+      {
+        value: 'custom',
+        label: t('prompt.setupType.option.custom.label'),
+        hint: t('prompt.setupType.option.custom.hint')
       }
     ]
   });
