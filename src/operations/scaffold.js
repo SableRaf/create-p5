@@ -16,7 +16,7 @@ import * as display from '../ui/display.js';
 import * as prompts from '../ui/prompts.js';
 
 // Business utilities
-import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, getTemplateName, generateProjectName, isRemoteTemplateSpec } from '../utils.js';
+import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, getTemplateDirName, generateProjectName, isRemoteTemplateSpec } from '../utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
 import { createConfig } from '../config.js';
@@ -312,7 +312,7 @@ export async function scaffold(args) {
       templateDir = 'minimal-global-js';
     } else {
       // Standard and custom use template based on language and mode
-      templateDir = getTemplateName(selectedLanguage, selectedP5Mode);
+      templateDir = getTemplateDirName(selectedLanguage, selectedP5Mode);
     }
     const templatePath = path.join(__dirname, '..', '..', 'templates', templateDir);
 
