@@ -16,7 +16,7 @@ import * as display from '../ui/display.js';
 import * as prompts from '../ui/prompts.js';
 
 // Business utilities
-import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, getTemplateName, generateProjectName, isRemoteTemplateSpec } from '../utils.js';
+import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, getTemplateDirName, generateProjectName, isRemoteTemplateSpec } from '../utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
 import { createConfig } from '../config.js';
@@ -312,7 +312,7 @@ export async function scaffold(args) {
       templateDir = 'minimal-global-js';
     } else {
       // Standard and custom use template based on language and mode
-      templateDir = getTemplateName(selectedLanguage, selectedP5Mode);
+      templateDir = getTemplateDirName(selectedLanguage, selectedP5Mode);
     }
     const templatePath = path.join(__dirname, '..', '..', 'templates', templateDir);
 
@@ -338,7 +338,7 @@ export async function scaffold(args) {
     }
 
     // If local mode, create lib directory and download p5.js files
-    if (selectedMode === 'local') {
+    if (selectedMode === 'local' && selectedLanguage !== "typescript") {
       const libPath = path.join(targetPath, 'lib');
       await fs.mkdir(libPath, { recursive: true });
       try {
@@ -359,19 +359,20 @@ export async function scaffold(args) {
         process.exit(1);
       }
     }
-
-    // Inject p5.js script tag into index.html
-    const indexPath = path.join(targetPath, 'index.html');
-    const htmlContent = await fs.readFile(indexPath, 'utf-8');
-    const updatedHtml = injectP5Script(htmlContent, selectedVersion, selectedMode);
-    await fs.writeFile(indexPath, updatedHtml, 'utf-8');
+    if (selectedLanguage !== "typescript"){
+      // Inject p5.js script tag into index.html
+      const indexPath = path.join(targetPath, 'index.html');
+      const htmlContent = await fs.readFile(indexPath, 'utf-8');
+      const updatedHtml = injectP5Script(htmlContent, selectedVersion, selectedMode);
+      await fs.writeFile(indexPath, updatedHtml, 'utf-8');
+    }
 
     // Download TypeScript definitions (skip for basic setup)
     let typeDefsVersion = null;
     if (setupType === 'basic') {
       // Basic setup never includes type definitions
       display.info('info.skipTypesBasic');
-    } else if (args.types !== false) {
+    } else if (args.types !== false && selectedLanguage !== "typescript") {
       const typesPath = path.join(targetPath, 'types');
       await fs.mkdir(typesPath, { recursive: true });
       try {
