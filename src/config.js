@@ -1,11 +1,13 @@
 /**
- * ConfigManager - Handles p5-config.json read/write operations
+ * ConfigManager - Handles .p5-config.json read/write operations
  */
 
+import fs from 'fs/promises';
+import path from 'path';
 import { readJSON, writeJSON, fileExists } from './utils.js';
 
 /**
- * Creates a new p5-config.json file with project metadata
+ * Creates a new .p5-config.json file with project metadata
  *
  * @param {string} configPath - The path where the config file should be created
  * @param {Object} options - Configuration options
@@ -30,7 +32,7 @@ export async function createConfig(configPath, options) {
 }
 
 /**
- * Reads an existing p5-config.json file
+ * Reads an existing .p5-config.json file
  *
  * @param {string} configPath - The path to the config file
  * @returns {Promise<Object|null>} The configuration object with {version, mode, language, p5Mode, typeDefsVersion, lastUpdated} or null if file doesn't exist
@@ -40,11 +42,47 @@ export async function readConfig(configPath) {
 }
 
 /**
- * Checks if a p5-config.json file exists at the given path
+ * Checks if a .p5-config.json file exists at the given path
  *
  * @param {string} configPath - The path to check for the config file
  * @returns {Promise<boolean>} True if the config file exists, false otherwise
  */
 export async function configExists(configPath) {
   return await fileExists(configPath);
+}
+
+/**
+ * Migrates old 'p5-config.json' to new '.p5-config.json' format if needed.
+ * Handles edge cases: both files exist, permission errors, etc.
+ *
+ * @param {string} projectDir - The directory containing the config file(s)
+ * @returns {Promise<{migrated: boolean, error: string|null}>} Migration result with status and any error message
+ */
+export async function migrateConfigIfNeeded(projectDir) {
+  const oldConfigPath = path.join(projectDir, 'p5-config.json');
+  const newConfigPath = path.join(projectDir, '.p5-config.json');
+
+  // Check if old config exists
+  if (!(await fileExists(oldConfigPath))) {
+    return { migrated: false, error: null };
+  }
+
+  // Check if new config already exists
+  if (await fileExists(newConfigPath)) {
+    return {
+      migrated: false,
+      error: 'error.migration.configExists'
+    };
+  }
+
+  // Attempt migration
+  try {
+    await fs.rename(oldConfigPath, newConfigPath);
+    return { migrated: true, error: null };
+  } catch (err) {
+    return {
+      migrated: false,
+      error: `error.migration.renameFailed: ${err.message}`
+    };
+  }
 }

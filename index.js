@@ -9,7 +9,7 @@ import path from 'path';
 import minimist from 'minimist';
 import { scaffold } from './src/operations/scaffold.js';
 import { update } from './src/operations/update.js';
-import { configExists } from './src/config.js';
+import { configExists, migrateConfigIfNeeded } from './src/config.js';
 import { t } from './src/i18n/index.js';
 import * as display from './src/ui/display.js';
 
@@ -41,8 +41,17 @@ async function main() {
     return;
   }
 
-  // Check if we're in an existing p5.js project (but not if running 'update' command)
-  const currentConfigPath = path.join(process.cwd(), 'p5-config.json');
+  // Check for old config file and migrate if found (before checking for existing project)
+  const migrationResult = await migrateConfigIfNeeded(process.cwd());
+  if (migrationResult.migrated) {
+    display.warn('info.update.migratedConfig');
+  } else if (migrationResult.error) {
+    display.warn(migrationResult.error);
+  }
+
+  // Check if we're in an existing p5.js project
+  const currentConfigPath = path.join(process.cwd(), '.p5-config.json');
+
   if (await configExists(currentConfigPath)) {
     display.info('error.existingProject.detected');
     display.info('error.existingProject.alreadyProject');

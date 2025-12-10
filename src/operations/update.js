@@ -6,7 +6,7 @@
 
 import path from 'path';
 import minimist from 'minimist';
-import { readConfig, createConfig } from '../config.js';
+import { readConfig, createConfig, migrateConfigIfNeeded } from '../config.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
 import { createDirectory, readFile, writeFile, fileExists, removeDirectory } from '../utils.js';
@@ -33,9 +33,11 @@ export async function update(projectDir = process.cwd()) {
     }
   });
 
-  const configPath = path.join(projectDir, 'p5-config.json');
+  // Check for old config file and migrate if found
+  const migrationResult = await migrateConfigIfNeeded(projectDir);
 
   // Read existing configuration
+  const configPath = path.join(projectDir, '.p5-config.json');
   const config = await readConfig(configPath);
 
   if (!config) {
@@ -60,6 +62,13 @@ export async function update(projectDir = process.cwd()) {
       types: config.typeDefsVersion,
       timestamp: config.lastUpdated
     });
+  }
+
+  // Show migration warning after config display (more visible)
+  if (migrationResult.migrated) {
+    display.warn('info.update.migratedConfig');
+  } else if (migrationResult.error) {
+    display.warn(migrationResult.error);
   }
 
   // Show update options
@@ -137,8 +146,8 @@ async function updateVersion(projectDir, config, options = {}) {
     display.success('info.update.updatedTypes', { version: typeDefsVersion });
   }
 
-  // Update p5-config.json
-  const configPath = path.join(projectDir, 'p5-config.json');
+  // Update .p5-config.json
+  const configPath = path.join(projectDir, '.p5-config.json');
   await createConfig(configPath, {
     version: newVersion,
     mode: config.mode,
@@ -228,8 +237,8 @@ async function switchMode(projectDir, config, options = {}) {
     display.success('info.update.updatedScript');
   }
 
-  // Update p5-config.json
-  const configPath = path.join(projectDir, 'p5-config.json');
+  // Update .p5-config.json
+  const configPath = path.join(projectDir, '.p5-config.json');
   await createConfig(configPath, {
     version: config.version,
     mode: newMode,
