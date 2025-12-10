@@ -5,9 +5,8 @@
  */
 
 import path from 'path';
-import fs from 'fs/promises';
 import minimist from 'minimist';
-import { readConfig, createConfig } from '../config.js';
+import { readConfig, createConfig, migrateConfigIfNeeded } from '../config.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
 import { createDirectory, readFile, writeFile, fileExists, removeDirectory } from '../utils.js';
@@ -34,17 +33,11 @@ export async function update(projectDir = process.cwd()) {
     }
   });
 
-  const configPath = path.join(projectDir, '.p5-config.json');
-  const oldConfigPath = path.join(projectDir, 'p5-config.json');
-
-  // Check for old config file and migrate if found (show warning later)
-  let didMigrate = false;
-  if (await fileExists(oldConfigPath)) {
-    await fs.rename(oldConfigPath, configPath);
-    didMigrate = true;
-  }
+  // Check for old config file and migrate if found
+  const migrationResult = await migrateConfigIfNeeded(projectDir);
 
   // Read existing configuration
+  const configPath = path.join(projectDir, '.p5-config.json');
   const config = await readConfig(configPath);
 
   if (!config) {
@@ -72,8 +65,10 @@ export async function update(projectDir = process.cwd()) {
   }
 
   // Show migration warning after config display (more visible)
-  if (didMigrate) {
+  if (migrationResult.migrated) {
     display.warn('info.update.migratedConfig');
+  } else if (migrationResult.error) {
+    display.warn(migrationResult.error);
   }
 
   // Show update options

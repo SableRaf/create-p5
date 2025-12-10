@@ -2,6 +2,8 @@
  * ConfigManager - Handles .p5-config.json read/write operations
  */
 
+import fs from 'fs/promises';
+import path from 'path';
 import { readJSON, writeJSON, fileExists } from './utils.js';
 
 /**
@@ -47,4 +49,40 @@ export async function readConfig(configPath) {
  */
 export async function configExists(configPath) {
   return await fileExists(configPath);
+}
+
+/**
+ * Migrates old 'p5-config.json' to new '.p5-config.json' format if needed.
+ * Handles edge cases: both files exist, permission errors, etc.
+ *
+ * @param {string} projectDir - The directory containing the config file(s)
+ * @returns {Promise<{migrated: boolean, error: string|null}>} Migration result with status and any error message
+ */
+export async function migrateConfigIfNeeded(projectDir) {
+  const oldConfigPath = path.join(projectDir, 'p5-config.json');
+  const newConfigPath = path.join(projectDir, '.p5-config.json');
+
+  // Check if old config exists
+  if (!(await fileExists(oldConfigPath))) {
+    return { migrated: false, error: null };
+  }
+
+  // Check if new config already exists
+  if (await fileExists(newConfigPath)) {
+    return {
+      migrated: false,
+      error: 'error.migration.configExists'
+    };
+  }
+
+  // Attempt migration
+  try {
+    await fs.rename(oldConfigPath, newConfigPath);
+    return { migrated: true, error: null };
+  } catch (err) {
+    return {
+      migrated: false,
+      error: `error.migration.renameFailed: ${err.message}`
+    };
+  }
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -6,31 +6,41 @@ const tmpDir = path.join('tests', 'tmp-migration');
 const oldConfigPath = path.join(tmpDir, 'p5-config.json');
 const newConfigPath = path.join(tmpDir, '.p5-config.json');
 
+const testConfig = {
+  version: '1.9.0',
+  mode: 'cdn',
+  language: 'javascript',
+  p5Mode: 'global',
+  typeDefsVersion: null,
+  lastUpdated: new Date().toISOString()
+};
+
 describe('Config file migration', () => {
   beforeEach(async () => {
-    // Ensure the temp directory is removed before each test
+    // Ensure clean state before each test
+    await fs.rm(tmpDir, { recursive: true, force: true });
+    await fs.mkdir(tmpDir, { recursive: true });
+  });
+
+  afterEach(async () => {
+    // Cleanup after each test
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
+
   it('migrates old p5-config.json to .p5-config.json', async () => {
-    // Setup: create temp directory with old config file
-    await fs.mkdir(tmpDir, { recursive: true });
-    const testConfig = {
-      version: '1.9.0',
-      mode: 'cdn',
-      language: 'javascript',
-      p5Mode: 'global',
-      typeDefsVersion: null,
-      lastUpdated: new Date().toISOString()
-    };
+    // Setup: create old config file
     await fs.writeFile(oldConfigPath, JSON.stringify(testConfig, null, 2));
 
-    // Simulate migration (what update.js does)
-    const { fileExists } = await import('../src/utils.js');
-    if (await fileExists(oldConfigPath)) {
-      await fs.rename(oldConfigPath, newConfigPath);
-    }
+    // Use shared migration function
+    const { migrateConfigIfNeeded } = await import('../src/config.js');
+    const result = await migrateConfigIfNeeded(tmpDir);
+
+    // Verify: migration succeeded
+    expect(result.migrated).toBe(true);
+    expect(result.error).toBe(null);
 
     // Verify: old file gone, new file exists with same content
+    const { fileExists } = await import('../src/utils.js');
     const oldExists = await fileExists(oldConfigPath);
     const newExists = await fileExists(newConfigPath);
     expect(oldExists).toBe(false);
@@ -39,8 +49,76 @@ describe('Config file migration', () => {
     const content = await fs.readFile(newConfigPath, 'utf-8');
     const config = JSON.parse(content);
     expect(config.version).toBe('1.9.0');
+  });
 
-    // Cleanup
-    await fs.rm(tmpDir, { recursive: true, force: true });
+  it('does not migrate if new config file already exists', async () => {
+    // Setup: create both old and new config files
+    const oldContent = { ...testConfig, version: '1.9.0' };
+    const newContent = { ...testConfig, version: '2.0.0' };
+    await fs.writeFile(oldConfigPath, JSON.stringify(oldContent, null, 2));
+    await fs.writeFile(newConfigPath, JSON.stringify(newContent, null, 2));
+
+    // Use shared migration function
+    const { migrateConfigIfNeeded } = await import('../src/config.js');
+    const result = await migrateConfigIfNeeded(tmpDir);
+
+    // Verify: migration failed with appropriate error
+    expect(result.migrated).toBe(false);
+    expect(result.error).toBe('error.migration.configExists');
+
+    // Verify: both files still exist with original content
+    const { fileExists } = await import('../src/utils.js');
+    const oldExists = await fileExists(oldConfigPath);
+    const newExists = await fileExists(newConfigPath);
+    expect(oldExists).toBe(true);
+    expect(newExists).toBe(true);
+
+    const oldContentResult = JSON.parse(await fs.readFile(oldConfigPath, 'utf-8'));
+    const newContentResult = JSON.parse(await fs.readFile(newConfigPath, 'utf-8'));
+    expect(oldContentResult.version).toBe('1.9.0');
+    expect(newContentResult.version).toBe('2.0.0');
+  });
+
+  it('handles permission errors gracefully', async () => {
+    // Setup: create old config file
+    await fs.writeFile(oldConfigPath, JSON.stringify(testConfig, null, 2));
+
+    // Use shared migration function with permission error
+    const { migrateConfigIfNeeded } = await import('../src/config.js');
+    const { fileExists } = await import('../src/utils.js');
+
+    try {
+      // Make directory read-only to force permission error
+      await fs.chmod(tmpDir, 0o444);
+      const result = await migrateConfigIfNeeded(tmpDir);
+
+      // Verify: migration failed with error
+      expect(result.migrated).toBe(false);
+      if (result.error) {
+        // Permission error occurred (expected on most systems)
+        expect(result.error).toContain('error.migration.renameFailed');
+        expect(result.error).toMatch(/EACCES|EPERM/);
+      } else {
+        // Some systems (e.g., macOS with specific permissions) may not trigger the error
+        // In this case, we just verify migration didn't succeed
+      }
+    } finally {
+      // Restore permissions for cleanup
+      await fs.chmod(tmpDir, 0o755);
+    }
+
+    // Old file should still exist since rename failed or didn't happen
+    const oldExists = await fileExists(oldConfigPath);
+    expect(oldExists).toBe(true);
+  });
+
+  it('returns false when no old config file exists', async () => {
+    // No old config file created
+    const { migrateConfigIfNeeded } = await import('../src/config.js');
+    const result = await migrateConfigIfNeeded(tmpDir);
+
+    // Verify: no migration needed
+    expect(result.migrated).toBe(false);
+    expect(result.error).toBe(null);
   });
 });

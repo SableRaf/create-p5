@@ -24,5 +24,8 @@
   "error.persistHelp.permissions": "• Check write permissions in the current directory",
   "error.persistHelp.issues": "• Report issues at https://github.com/sableraf/create-p5/issues",
 
-  "error.update.noConfig": "No .p5-config.json found. This does not appear to be a create-p5 project."
+  "error.update.noConfig": "No .p5-config.json found. This does not appear to be a create-p5 project.",
+
+  "error.migration.configExists": "Both 'p5-config.json' and '.p5-config.json' exist. Please manually remove 'p5-config.json' after verifying your configuration.",
+  "error.migration.renameFailed": "Failed to migrate 'p5-config.json' to '.p5-config.json'."
 }
