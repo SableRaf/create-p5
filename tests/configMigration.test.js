@@ -7,6 +7,10 @@ const oldConfigPath = path.join(tmpDir, 'p5-config.json');
 const newConfigPath = path.join(tmpDir, '.p5-config.json');
 
 describe('Config file migration', () => {
+  beforeEach(async () => {
+    // Ensure the temp directory is removed before each test
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
   it('migrates old p5-config.json to .p5-config.json', async () => {
     // Setup: create temp directory with old config file
     await fs.mkdir(tmpDir, { recursive: true });
