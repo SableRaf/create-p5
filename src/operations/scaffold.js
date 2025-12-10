@@ -306,7 +306,14 @@ export async function scaffold(args) {
     }
 
     // Copy built-in template files
-    const templateDir = getTemplateName(selectedLanguage, selectedP5Mode);
+    let templateDir;
+    if (setupType === 'basic') {
+      // Basic setup always uses minimal template
+      templateDir = 'minimal-global-js';
+    } else {
+      // Standard and custom use template based on language and mode
+      templateDir = getTemplateName(selectedLanguage, selectedP5Mode);
+    }
     const templatePath = path.join(__dirname, '..', '..', 'templates', templateDir);
 
     if (args.verbose) {
@@ -359,9 +366,12 @@ export async function scaffold(args) {
     const updatedHtml = injectP5Script(htmlContent, selectedVersion, selectedMode);
     await fs.writeFile(indexPath, updatedHtml, 'utf-8');
 
-    // Download TypeScript definitions
+    // Download TypeScript definitions (skip for basic setup)
     let typeDefsVersion = null;
-    if (args.types !== false) {
+    if (setupType === 'basic') {
+      // Basic setup never includes type definitions
+      display.info('info.skipTypesBasic');
+    } else if (args.types !== false) {
       const typesPath = path.join(targetPath, 'types');
       await fs.mkdir(typesPath, { recursive: true });
       try {
