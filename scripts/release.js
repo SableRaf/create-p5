@@ -17,6 +17,8 @@ import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { createInterface } from 'readline';
 
+const PACKAGE_NAME = JSON.parse(readFileSync('./package.json', 'utf8')).name;
+
 /**
  * Executes a shell command and returns the output
  *
@@ -77,6 +79,106 @@ function getCurrentVersion() {
 }
 
 /**
+ * Gets the latest published version from npm
+ *
+ * @returns {string|null} The latest published version, or null if package not found
+ */
+function getPublishedVersion() {
+  try {
+    const result = exec(`npm view ${PACKAGE_NAME} version`, true);
+    return result.trim();
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Checks if a git tag exists locally
+ *
+ * @param {string} tag - The tag name to check
+ * @returns {boolean} True if tag exists
+ */
+function gitTagExists(tag) {
+  try {
+    const result = exec(`git tag -l ${tag}`, true);
+    return result.trim() !== '';
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Checks if a GitHub release exists for a tag
+ *
+ * @param {string} tag - The tag name to check
+ * @returns {boolean} True if GitHub release exists
+ */
+function githubReleaseExists(tag) {
+  try {
+    exec(`gh release view ${tag}`, true);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function calculateNextVersion(currentVersion, releaseType) {
+  const parts = currentVersion.split('.');
+
+  if (parts.length !== 3) {
+    throw new Error('Invalid semantic version in package.json');
+  }
+
+  let [major, minor, patch] = parts.map((part) => Number.parseInt(part, 10));
+
+  if ([major, minor, patch].some(Number.isNaN)) {
+    throw new Error('Invalid semantic version in package.json');
+  }
+
+  switch (releaseType) {
+    case 'patch':
+      patch += 1;
+      break;
+    case 'minor':
+      minor += 1;
+      patch = 0;
+      break;
+    case 'major':
+      major += 1;
+      minor = 0;
+      patch = 0;
+      break;
+    default:
+      throw new Error(`Unknown release type: ${releaseType}`);
+  }
+
+  return `${major}.${minor}.${patch}`;
+}
+
+function validateReleaseTarget(version, tag) {
+  console.log('\n🔍 Validating release state...');
+
+  const publishedVersion = getPublishedVersion();
+
+  if (publishedVersion && publishedVersion === version) {
+    console.error(`❌ Version ${version} is already published on npm as the latest release.`);
+    process.exit(1);
+  }
+
+  if (gitTagExists(tag)) {
+    console.error(`❌ Git tag ${tag} already exists. Delete it or pick a different version.`);
+    process.exit(1);
+  }
+
+  if (githubReleaseExists(tag)) {
+    console.error(`❌ GitHub release for ${tag} already exists.`);
+    process.exit(1);
+  }
+
+  console.log('✅ Release target validated\n');
+}
+
+/**
  * Main release workflow
  */
 async function release() {
@@ -131,13 +233,18 @@ async function release() {
       process.exit(1);
   }
 
+  const targetVersion = customVersion || calculateNextVersion(currentVersion, versionType);
+  const targetTag = `v${targetVersion}`;
+
+  validateReleaseTarget(targetVersion, targetTag);
+
   // Step 4: Update version and create tag
   console.log('\n📝 Updating version...');
   if (customVersion) {
     exec(`npm version ${customVersion} --no-git-tag-version`, true);
-    exec(`git add package.json`);
+    exec('git add package.json');
     exec(`git commit -m "chore: bump version to ${customVersion}"`);
-    exec(`git tag v${customVersion}`);
+    exec(`git tag ${targetTag}`);
   } else {
     exec(`npm version ${versionType}`);
   }
@@ -172,7 +279,7 @@ async function release() {
   console.log('✅ Pushed to remote\n');
 
   console.log(`🎉 Successfully released version ${newVersion}!`);
-  console.log(`\n📦 Package: https://www.npmjs.com/package/create-p5js/v/${newVersion}`);
+  console.log(`\n📦 Package: https://www.npmjs.com/package/${PACKAGE_NAME}/v/${newVersion}`);
 }
 
 // Run the release
