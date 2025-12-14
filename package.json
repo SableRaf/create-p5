@@ -29,7 +29,8 @@
   "scripts": {
     "test": "vitest run",
     "test:coverage": "vitest --coverage --run",
-    "run": "node ./index.js"
+    "run": "node ./index.js",
+    "release": "node ./scripts/release.js"
   },
   "dependencies": {
     "@clack/prompts": "^0.11.0",
