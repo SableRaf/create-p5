@@ -8,10 +8,24 @@ import * as p from '@clack/prompts';
 import { blue, red, green, cyan, bgMagenta, white } from 'kolorist';
 import { t } from '../i18n/index.js';
 
+let silentModeEnabled = false;
+
+/**
+ * Enable or disable silent mode for all display output.
+ *
+ * @param {boolean} enabled - Whether to silence all display output
+ */
+export function setSilentMode(enabled) {
+  silentModeEnabled = Boolean(enabled);
+}
+
 /**
  * Show intro banner with branding
  */
 export function intro() {
+  if (silentModeEnabled) {
+    return;
+  }
   p.intro(bgMagenta(white(t('cli.intro'))));
 }
 
@@ -20,6 +34,9 @@ export function intro() {
  * @param {string} message - The outro message (already translated)
  */
 export function outro(message) {
+  if (silentModeEnabled) {
+    process.exit(0);
+  }
   p.outro(message);
   process.exit(0);
 }
@@ -29,6 +46,9 @@ export function outro(message) {
  * @param {string} key - Translation key for cancellation message
  */
 export function cancel(key) {
+  if (silentModeEnabled) {
+    process.exit(0);
+  }
   p.cancel(t(key));
   process.exit(0);
 }
@@ -38,6 +58,9 @@ export function cancel(key) {
  * @param {string} text - Pre-formatted text (can include colors)
  */
 export function message(text) {
+  if (silentModeEnabled) {
+    return;
+  }
   p.log.message(text);
 }
 
@@ -47,6 +70,9 @@ export function message(text) {
  * @param {Record<string, any>} [vars] - Variables for interpolation
  */
 export function info(key, vars) {
+  if (silentModeEnabled) {
+    return;
+  }
   p.log.info(t(key, vars));
 }
 
@@ -56,6 +82,9 @@ export function info(key, vars) {
  * @param {Record<string, any>} [vars] - Variables for interpolation
  */
 export function success(key, vars) {
+  if (silentModeEnabled) {
+    return;
+  }
   p.log.success(t(key, vars));
 }
 
@@ -65,6 +94,9 @@ export function success(key, vars) {
  * @param {Record<string, any>} [vars] - Variables for interpolation
  */
 export function error(key, vars) {
+  if (silentModeEnabled) {
+    return;
+  }
   p.log.error(t(key, vars));
 }
 
@@ -74,6 +106,9 @@ export function error(key, vars) {
  * @param {Record<string, any>} [vars] - Variables for interpolation
  */
 export function warn(key, vars) {
+  if (silentModeEnabled) {
+    return;
+  }
   p.log.warn(t(key, vars));
 }
 
@@ -84,6 +119,9 @@ export function warn(key, vars) {
  * @param {Record<string, any>} [vars] - Variables for interpolation (applied to all)
  */
 export function note(lineKeys, titleKey, vars = {}) {
+  if (silentModeEnabled) {
+    return;
+  }
   const content = lineKeys.map(key => t(key, vars)).join('\n');
   const title = t(titleKey);
   p.note(content, title);
@@ -96,6 +134,12 @@ export function note(lineKeys, titleKey, vars = {}) {
  * @returns {Object} Spinner object with message(key, vars) and stop(key, vars) methods
  */
 export function spinner(key, vars) {
+  if (silentModeEnabled) {
+    return {
+      message: () => {},
+      stop: () => {}
+    };
+  }
   const s = p.spinner();
   s.start(t(key, vars));
 
