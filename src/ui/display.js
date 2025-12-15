@@ -64,6 +64,7 @@ export function intro() {
 export function outro(message, exitCode = 0) {
   if (shouldSuppress('outro')) {
     process.exit(exitCode);
+    return;
   }
   p.outro(message);
   process.exit(exitCode);
@@ -76,6 +77,7 @@ export function outro(message, exitCode = 0) {
 export function cancel(key) {
   if (shouldSuppress('cancel')) {
     process.exit(0);
+    return;
   }
   p.cancel(t(key));
   process.exit(0);
