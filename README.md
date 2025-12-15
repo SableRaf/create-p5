@@ -83,6 +83,14 @@ npm create p5js -- --yes
 
 This will use default values (random project name like `flamboyant-duck`, language: `javascript`, p5.js mode: `global`, version: `latest`, delivery mode: `cdn`).
 
+**Run silently with defaults:**
+
+```bash
+npm create p5js -- --silent
+```
+
+This behaves like `--yes` but suppresses console output (useful for scripts or tests).
+
 **Specify p5.js version:**
 
 ```bash

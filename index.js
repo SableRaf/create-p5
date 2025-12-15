@@ -16,7 +16,7 @@ import * as display from './src/ui/display.js';
 async function main() {
   // Parse command line arguments
   const args = minimist(process.argv.slice(2), {
-    boolean: ['yes', 'git', 'no-types', 'help', 'verbose', 'include-prerelease'],
+    boolean: ['yes', 'git', 'no-types', 'help', 'verbose', 'include-prerelease', 'silent'],
     string: ['template', 'version', 'mode'],
     alias: {
       y: 'yes',
@@ -25,9 +25,15 @@ async function main() {
       v: 'version',
       m: 'mode',
       h: 'help',
-      p: 'include-prerelease'
+      p: 'include-prerelease',
+      s: 'silent'
     }
   });
+
+  if (args.silent) {
+    args.yes = true;
+    display.setSilentMode(true);
+  }
 
   // Handle --help flag
   if (args.help) {
