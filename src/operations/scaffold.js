@@ -57,15 +57,17 @@ export async function scaffold(args) {
   let setupType = 'standard';
   const hasConfigFlags = args.language || args['p5-mode'] || args.version || args.mode;
 
-  if (!args.yes && !hasConfigFlags) {
-    // Interactive mode without config flags: ask for setup type
-    setupType = await prompts.promptSetupType();
-    if (prompts.isCancel(setupType)) {
-      display.cancel('prompt.cancel.sketchCreation');
+  if (!args.yes) {
+    if (!hasConfigFlags) {
+      // Interactive mode without config flags: ask for setup type
+      setupType = await prompts.promptSetupType();
+      if (prompts.isCancel(setupType)) {
+        display.cancel('prompt.cancel.sketchCreation');
+      }
+    } else {
+      // If user provided config flags interactively, they clearly want to customize
+      setupType = 'custom';
     }
-  } else if (hasConfigFlags) {
-    // If user provided config flags, they clearly want to customize
-    setupType = 'custom';
   }
   // If --yes flag, setupType remains 'standard' (use defaults)
 
