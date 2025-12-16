@@ -18,3 +18,4 @@ vitest.config.*
 CLAUDE.md
 AGENTS.md
 CONTRIBUTING.md
+output/
