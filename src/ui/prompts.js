@@ -8,10 +8,27 @@ import * as p from '@clack/prompts';
 import { t } from '../i18n/index.js';
 import { isValidPathName } from '../utils.js';
 
+
+
+/**
+ * @typedef {import('../types.js').Language} Language
+*/
+/**
+ * @typedef {import('../types.js').P5Mode} P5Mode
+*/
+/**
+ * @typedef {import('../types.js').DeliveryMode} DeliveryMode
+*/
+/**
+ * @typedef {import('../types.js').SetupType} SetupType
+*/
+
+
+
 /**
  * Check if user cancelled a prompt
  * @param {any} value - The prompt response value
- * @returns {boolean} True if cancelled
+ * @returns {value is symbol} True if cancelled
  */
 export function isCancel(value) {
   return p.isCancel(value);
@@ -20,7 +37,7 @@ export function isCancel(value) {
 /**
  * Prompt for project path
  * @param {string} initialValue - Initial/default value
- * @returns {Promise<string>} User's input
+ * @returns {Promise<string|symbol>} User's input
  */
 export async function promptProjectPath(initialValue) {
   return await p.text({
@@ -51,7 +68,7 @@ export async function promptProjectPath(initialValue) {
 
 /**
  * Prompt for setup type selection
- * @returns {Promise<string>} Selected setup type ('basic', 'standard', or 'custom')
+ * @returns {Promise<symbol | SetupType>} Selected setup type ('basic', 'standard', or 'custom')
  */
 export async function promptSetupType() {
   const result = await p.select({
@@ -79,7 +96,7 @@ export async function promptSetupType() {
 
 /**
  * Prompt for language selection
- * @returns {Promise<string>} Selected language ('javascript' or 'typescript')
+ * @returns {Promise<Language | symbol>} Selected language ('javascript' or 'typescript')
  */
 export async function promptLanguage() {
   return await p.select({
@@ -101,7 +118,7 @@ export async function promptLanguage() {
 
 /**
  * Prompt for p5.js mode selection
- * @returns {Promise<string>} Selected mode ('global' or 'instance')
+ * @returns {Promise<symbol | P5Mode>} Selected mode ('global' or 'instance')
  */
 export async function promptP5Mode() {
   return await p.select({
@@ -123,11 +140,11 @@ export async function promptP5Mode() {
 
 /**
  * Prompt for language and mode selection using two separate prompts
- * @returns {Promise<string[]>} Array of selected values: ['javascript'|'typescript', 'global'|'instance']
+ * @returns {Promise<symbol | [Language, P5Mode]>} Either the cancel signal or a tuple of selected values: ['javascript'|'typescript', 'global'|'instance']
  */
 export async function promptLanguageAndMode() {
   const language = await promptLanguage();
-  if (isCancel(language)) {
+  if (isCancel(language)) {    
     return language; // Return the cancel symbol
   }
 
@@ -143,7 +160,7 @@ export async function promptLanguageAndMode() {
  * Prompt for version selection
  * @param {string[]} versions - Available versions
  * @param {string} latest - Latest version
- * @returns {Promise<string>} Selected version
+ * @returns {Promise<symbol | string>} Selected version or symbol if cancelled
  */
 export async function promptVersion(versions, latest) {
   return await p.select({
@@ -158,7 +175,7 @@ export async function promptVersion(versions, latest) {
 
 /**
  * Prompt for delivery mode selection
- * @returns {Promise<string>} Selected mode ('cdn' or 'local')
+ * @returns {Promise<symbol | DeliveryMode>} Selected mode ('cdn' or 'local') or symbol if cancelled
  */
 export async function promptMode() {
   return await p.select({
@@ -180,7 +197,7 @@ export async function promptMode() {
 
 /**
  * Prompt for update action selection
- * @returns {Promise<string>} Selected action ('version', 'mode', or 'cancel')
+ * @returns {Promise<symbol | string>} Selected action ('version', 'mode', or 'cancel') or symbol if cancelled
  */
 export async function promptUpdateAction() {
   return await p.select({
@@ -207,7 +224,7 @@ export async function promptUpdateAction() {
 
 /**
  * Confirm deletion of lib directory
- * @returns {Promise<boolean>} User's confirmation
+ * @returns {Promise<symbol | boolean>} User's confirmation or symbol if cancelled
  */
 export async function confirmDeleteLib() {
   return await p.confirm({

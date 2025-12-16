@@ -21,5 +21,6 @@
     "strict": true,
     "skipLibCheck": true,
   },
-  "exclude": ["templates"]
+  //TODO: bring tests back in to the type-checking
+  "exclude": ["templates", "tests"]
 }

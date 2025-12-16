@@ -16,19 +16,55 @@ import * as display from '../ui/display.js';
 import * as prompts from '../ui/prompts.js';
 
 // Business utilities
-import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, validateSetupType, getTemplateName, generateProjectName, isRemoteTemplateSpec } from '../utils.js';
+import { copyTemplateFiles, validateProjectName, directoryExists, validateMode, validateVersion, validateLanguage, validateP5Mode, validateSetupType, getTemplateName, generateProjectName, isRemoteTemplateSpec, getValidSetupTypes } from '../utils.js';
 import { fetchVersions, downloadP5Files, downloadTypeDefinitions } from '../version.js';
 import { injectP5Script } from '../htmlManager.js';
-import { createConfig } from '../config.js';
+import { createConfig, isValidDeliveryMode, isValidLanguage, isValidP5Mode } from '../config.js';
 import { initGit, addLibToGitignore } from '../git.js';
 import { normalizeTemplateSpec, fetchTemplate } from '../templateFetcher.js';
+import { hasMessageStringProperty, isFetchErrorCandidate, isLoggingError, messageFromErrorOrUndefined } from '../exceptionUtils.js';
+
+
+
+/**
+ * @typedef {import('../types.js').Language} Language
+*/
+
+/**
+ * @typedef {import('../types.js').P5Mode} P5Mode
+*/
+/**
+ * @typedef {import('../types.js').DeliveryMode} DeliveryMode
+*/
+/**
+ * @typedef {import('../types.js').SetupType} SetupType
+*/
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// {_:any[], verbose: boolean?, yes:boolean?, language:string ?, "p5-mode":string ?, version:string?, mode:string?, type: string?, "include-prerelease":boolean? }
+/**
+ * @typedef {object} CliArgs
+ * @property {any[]} _
+ * @property {boolean} [verbose]
+ * @property {boolean} [yes]
+ * @property {string} [language]
+ * @property {string} [p5-mode]
+ * @property {string} [version]
+ * @property {string} [mode] 
+ * @property {string} [type] 
+ * @property {boolean} [types] 
+ * @property {string} [template] 
+ * @property {string} [git] 
+ * @property {boolean} [include-prerelease]
+ */
+
 /**
  * Main scaffolding function
- * @param {Object} args - Parsed command line arguments
+ * @param {CliArgs} args - Parsed command line arguments
  * @returns {Promise<void>}
  */
 export async function scaffold(args) {
@@ -54,23 +90,27 @@ export async function scaffold(args) {
   }
 
   // Determine setup type (allow override via --type flag)
+  /**
+   * @type {SetupType}
+   */
   let setupType = 'standard';
   const hasConfigFlags = args.language || args['p5-mode'] || args.version || args.mode;
 
   if (args.type) {
-    const typeError = validateSetupType(args.type);
-    if (typeError) {
+    if (!validateSetupType(args.type)){    
       display.error('error.invalidSetupType');
-      display.message(typeError);
+      display.message(`Invalid setup type: ${args.type}. Must be one of: ${getValidSetupTypes().join(', ')}`);
       process.exit(1);
     }
     setupType = args.type;
   } else if (!args.yes && !hasConfigFlags) {
     // Interactive mode without config flags: ask for setup type
-    setupType = await prompts.promptSetupType();
-    if (prompts.isCancel(setupType)) {
+    const setupTypeReply = await prompts.promptSetupType();
+    if (prompts.isCancel(setupTypeReply)) {
       display.cancel('prompt.cancel.sketchCreation');
+      return;
     }
+    setupType = setupTypeReply;
   } else if (hasConfigFlags) {
     // If user provided config flags, they clearly want to customize
     setupType = 'custom';
@@ -137,7 +177,9 @@ export async function scaffold(args) {
         s.stop('spinner.failedVersions');
         display.message('');
         display.error('error.fetchVersions.failed');
-        display.message(error.message);
+        if (hasMessageStringProperty(error)){
+          display.message(error.message);
+        }
         display.message('');
         display.info('error.fetchVersions.troubleshooting');
         display.info('error.fetchVersions.step1');
@@ -154,7 +196,9 @@ export async function scaffold(args) {
       } catch (error) {
         display.message('');
         display.error('error.fetchVersions.failed');
-        display.message(error.message);
+        if (hasMessageStringProperty(error)){
+          display.message(error.message);
+        }
         display.message('');
         display.info('error.fetchVersions.troubleshooting');
         display.info('error.fetchVersions.step1');
@@ -211,11 +255,11 @@ export async function scaffold(args) {
         display.info('note.verbose.targetPath', { path: targetPath });
       }
       try {
-        await fetchTemplate(args.template, targetPath, { verbose: args.verbose });
+        await fetchTemplate(args.template, targetPath, { verbose: args.verbose ?? false });
         if (copySpinner) copySpinner.stop('spinner.fetchedRemoteTemplate');
       } catch (err) {
         if (copySpinner) copySpinner.stop('spinner.failedRemoteTemplate');
-        throw new Error(t('error.fetchTemplate', { template: args.template, error: err.message }));
+        throw new Error(t('error.fetchTemplate', { template: args.template, error: messageFromErrorOrUndefined(err) }));
       }
 
       // Success! Community templates are used as-is, no modifications
@@ -244,13 +288,16 @@ export async function scaffold(args) {
       selectedVersion = await prompts.promptVersion(versions, latest);
       if (prompts.isCancel(selectedVersion)) {
         display.cancel('prompt.cancel.sketchCreation');
+        return;
       }
     }
 
     // Built-in templates: determine delivery mode (flag, default, or prompt)
+    /** @type {DeliveryMode} */
     let selectedMode;
-    if (args.mode) {
-      selectedMode = args.mode;
+    const modeFromArgs = args.mode;
+    if (isValidDeliveryMode(modeFromArgs)) {
+      selectedMode = modeFromArgs;
       display.success('info.usingMode', { mode: selectedMode });
     } else if (setupType === 'basic' || setupType === 'standard') {
       // Use default (cdn) for basic and standard setups
@@ -258,16 +305,22 @@ export async function scaffold(args) {
       display.success('info.defaultMode');
     } else {
       // Interactive customization mode (custom)
-      selectedMode = await prompts.promptMode();
-      if (prompts.isCancel(selectedMode)) {
+      const selectedModeResponse = await prompts.promptMode();
+      if (prompts.isCancel(selectedModeResponse)) {
         display.cancel('prompt.cancel.sketchCreation');
+        return;
       }
+      selectedMode = selectedModeResponse;
     }
 
     // Determine language and p5Mode for built-in templates
-    let selectedLanguage, selectedP5Mode;
+    /** @type {Language} */
+    let selectedLanguage;
+    
+    /** @type {P5Mode} */
+    let selectedP5Mode;
 
-    if (args.language && args['p5-mode']) {
+    if (args.language && args['p5-mode'] && isValidLanguage(args.language) && isValidP5Mode(args['p5-mode'])) {
       // Non-interactive with flags
       selectedLanguage = args.language;
       selectedP5Mode = args['p5-mode'];
@@ -281,7 +334,8 @@ export async function scaffold(args) {
       // Interactive customization mode (custom): prompt for language and mode
       const choices = await prompts.promptLanguageAndMode();
       if (prompts.isCancel(choices)) {
-        display.cancel('prompt.cancel.sketchCreation');
+        display.cancel('prompt.cancel.sketchCreation');   
+        return;     
       }
       [selectedLanguage, selectedP5Mode] = choices;
     }
@@ -360,7 +414,9 @@ export async function scaffold(args) {
         await addLibToGitignore(targetPath);
       } catch (error) {
         display.error('error.fetchVersions.failed');
-        display.message(error.message);
+        if (hasMessageStringProperty(error)){
+          display.message(error.message);
+        }
         display.message('');
         display.info('error.cleanup');
         await fs.rm(targetPath, { recursive: true, force: true });
@@ -389,11 +445,13 @@ export async function scaffold(args) {
           const typesSpinner = display.spinner('spinner.downloadingTypes');
           typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, typesSpinner, templateMode);
         } else {
-          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, null, templateMode);
+          typeDefsVersion = await downloadTypeDefinitions(selectedVersion, typesPath, undefined, templateMode);
         }
       } catch (error) {
         display.warn('error.fetchVersions.failed');
-        display.message(error.message);
+        if (hasMessageStringProperty(error)){
+          display.message(error.message);
+        } 
         display.info('info.continueWithoutTypes');
         // Don't fail the entire operation if type definitions fail
         typeDefsVersion = null;
@@ -478,11 +536,14 @@ export async function scaffold(args) {
       display.note(gitTipsLines, 'note.gitTips.title');
     }
   } catch (error) {
+    if (!isFetchErrorCandidate(error)){
+      throw new Error("unknown object was thrown: ", {cause:error})
+    }
     display.message('');
     display.error('error.fetchVersions.failed');
     display.message(error.message);
 
-    if (args.verbose) {
+    if (args.verbose && isLoggingError(error) && error.stack) {
       display.message('');
       display.info('info.stackTrace');
       display.message(error.stack);
@@ -497,7 +558,9 @@ export async function scaffold(args) {
       }
     } catch (cleanupError) {
       display.warn('error.cleanup');
-      display.message(cleanupError.message);
+      if (hasMessageStringProperty(cleanupError)){
+        display.message(cleanupError.message);
+      }
     }
 
     const helpLines = [

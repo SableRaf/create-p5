@@ -91,8 +91,9 @@ export async function update(projectDir = process.cwd()) {
  * Updates the p5.js version in an existing project
  * Handles both CDN and local delivery modes
  * @param {string} projectDir - The directory of the project to update
- * @param {Object} config - Current project configuration from p5-config.json
+ * @param {import('../config.js').ProjectConfig} config - Current project configuration from p5-config.json
  * @param {Object} [options={}] - Update options
+ * @param {boolean} [options.verbose=false]
  * @param {boolean} [options.includePrerelease=false] - Whether to include pre-release versions
  * @returns {Promise<void>}
  */
@@ -107,8 +108,14 @@ async function updateVersion(projectDir, config, options = {}) {
   }
 
   // Let user select new version
-  const newVersion = await prompts.promptVersion(versions, latest);
+  const newVersionResponse = await prompts.promptVersion(versions, latest);
 
+  if (prompts.isCancel(newVersionResponse)){
+    display.cancel('prompt.cancel.sketchUpdate');
+    return;
+  }
+
+  const newVersion = newVersionResponse;
   if (newVersion === config.version) {
     display.info('info.update.sameVersion');
     return;
@@ -141,7 +148,7 @@ async function updateVersion(projectDir, config, options = {}) {
   // Update TypeScript definitions
   const typesPath = path.join(projectDir, 'types');
   await createDirectory(typesPath);
-  const typeDefsVersion = await downloadTypeDefinitions(newVersion, typesPath, null, config.template, config.version);
+  const typeDefsVersion = await downloadTypeDefinitions(newVersion, typesPath, undefined, config.template, config.version);
   if (verbose && typeDefsVersion) {
     display.success('info.update.updatedTypes', { version: typeDefsVersion });
   }
@@ -172,7 +179,7 @@ async function updateVersion(projectDir, config, options = {}) {
 /**
  * Switches delivery mode between CDN and local
  * @param {string} projectDir - The directory of the project to update
- * @param {Object} config - Current project configuration from p5-config.json
+ * @param {import('../config.js').ProjectConfig} config - Current project configuration from p5-config.json
  * @param {Object} [options={}] - Update options
  * @param {boolean} [options.verbose=false] - Whether to show verbose output
  * @returns {Promise<void>}

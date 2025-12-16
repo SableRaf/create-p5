@@ -7,6 +7,21 @@ import path from 'path';
 import { uniqueNamesGenerator, adjectives, colors, animals } from 'unique-names-generator';
 
 /**
+ * @typedef {import('./types.js').Language} Language
+*/
+/**
+ * @typedef {import('./types.js').P5Mode} P5Mode
+*/
+/**
+ * @typedef {import('./types.js').DeliveryMode} DeliveryMode
+*/
+/**
+ * @typedef {import('./types.js').SetupType} SetupType
+*/
+
+
+
+/**
  * Copies all files from a template directory to a target directory.
  * Creates the target directory if it doesn't exist.
  *
@@ -270,16 +285,21 @@ export function validateP5Mode(mode) {
  * Validates setup type selections
  *
  * @param {string} type - Setup type to validate
- * @returns {string|null} Error message if invalid, null otherwise
+ * @returns {type is SetupType}
  */
 export function validateSetupType(type) {
-  const validTypes = ['basic', 'standard', 'custom'];
-  if (!validTypes.includes(type)) {
-    return `Invalid setup type: ${type}. Must be one of: ${validTypes.join(', ')}`;
-  }
-  return null;
+  return (/** @type {string[]} */(getValidSetupTypes())).includes(type);  
 }
 
+
+/**
+ * @returns {SetupType[]}
+ */
+export function getValidSetupTypes(){
+  /**@type {SetupType[]} */  
+  const validTypes = ['basic', 'standard', 'custom'];
+  return validTypes;
+}
 /**
  * Determines template directory name from language and mode
  * @param {string} language - 'javascript' or 'typescript'
@@ -310,13 +330,13 @@ export function validateVersion(version, availableVersions, latest) {
 
   return null;
 }
-
 /**
  * Generates a random, memorable project name using adjectives and animals
  * @returns {string} A random project name (e.g., 'brave-elephant', 'blue-tiger')
  */
 export function generateProjectName() {
   const useColor = Math.random() < 0.5;
+  /**@type {import('unique-names-generator').Config} */
   const config = {
     dictionaries: useColor ? [colors, animals] : [adjectives, animals],
     separator: '-',
@@ -353,7 +373,11 @@ export function hasValidEnding(trimmedPath) {
  * @returns {boolean} True if valid, false otherwise
  */
 export function isNotReservedName(trimmedPath) {
-  return !/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i.test(trimmedPath.split('.')[0]);
+  const firstPart = trimmedPath.split('.')[0];
+  if (!firstPart){
+    return true;  //it's falsy, but it's not reserved!
+  }
+  return !/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i.test(firstPart);
 }
 
 /**

@@ -1,5 +1,9 @@
 import { parseHTML } from 'linkedom';
 
+/**
+ * @typedef {import('./types.js').DeliveryMode} DeliveryMode
+*/
+
 const P5_PATTERNS = [
   /^https?:\/\/cdn\.jsdelivr\.net\/npm\/p5@([^/]+)\/lib\/p5\.(min\.)?js$/,
   /^https?:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/p5\.js\/([^/]+)\/p5\.(?:min\.)?js$/,
@@ -38,7 +42,7 @@ class HTMLManager {
    * @returns {{scriptNode: Element, version: string, isMinified: boolean, cdnProvider: string}|null}
    */
   findP5Script() {
-    const scripts = this.document.querySelectorAll('script');
+    const scripts = Array.from(this.document.querySelectorAll('script'));
 
     for (const script of scripts) {
       const src = script.getAttribute('src') || '';
@@ -67,7 +71,7 @@ class HTMLManager {
    * 3. Insert script into <head>
    *
    * @param {string} version - p5.js version to reference
-   * @param {string} [mode='cdn'] - Delivery mode: 'cdn' or 'local'
+   * @param {DeliveryMode} [mode='cdn'] - Delivery mode: 'cdn' or 'local'
    * @param {Object} [preferences={}] - Optional preferences: { isMinified: boolean, cdnProvider: string }
    * @returns {boolean} True if the document was modified, false otherwise
    */
@@ -85,7 +89,7 @@ class HTMLManager {
 
     // Replace marker if present
     const marker = this._findMarker();
-    if (marker) {
+    if (marker && marker.parentNode) {
       const script = this.document.createElement('script');
       const newURL = buildScriptURL(version, mode, preferences);
       script.setAttribute('src', newURL);
@@ -111,12 +115,16 @@ class HTMLManager {
     const head = this.document.head;
     if (!head) return null;
 
-    const findCommentInNode = (node) => {
+    /**
+     * @param {ChildNode} node 
+     * @returns {ChildNode|null}
+     */
+    function findCommentInNode(node){
       if (node.nodeType === 8) {
-        if (node.textContent.trim() === 'P5JS_SCRIPT_TAG') return node;
+        if (node.textContent && node.textContent.trim() === 'P5JS_SCRIPT_TAG') return node;
       }
 
-      for (const child of node.childNodes || []) {
+      for (const child of Array.from(node.childNodes) || []) {
         const found = findCommentInNode(child);
         if (found) return found;
       }
@@ -127,6 +135,10 @@ class HTMLManager {
     return findCommentInNode(head);
   }
 
+  
+  /**
+   * @param {string} url
+   */
   _detectCDN(url) {
     if (/cdn\.jsdelivr\.net/.test(url)) return 'jsdelivr';
     if (/cdnjs\.cloudflare\.com/.test(url)) return 'cdnjs';
@@ -135,6 +147,12 @@ class HTMLManager {
   }
 }
 
+/**
+ * @param {string} version
+ * @param {string} mode
+ * @param {{isMinified?: boolean, cdnProvider?: string | undefined}} preferences
+ * @returns {string}
+ */
 function buildScriptURL(version, mode, preferences = {}) {
   const file = preferences.isMinified ? 'p5.min.js' : 'p5.js';
 
@@ -156,6 +174,9 @@ function buildScriptURL(version, mode, preferences = {}) {
 /**
  * Legacy helper that mirrors previous API: injectP5Script(htmlString, version, mode)
  * Internally uses HTMLManager for DOM operations.
+ * @param {string} htmlString
+ * @param {string} version
+ * @param {DeliveryMode} mode
  */
 export function injectP5Script(htmlString, version, mode = 'cdn') {
   const mgr = new HTMLManager(htmlString);

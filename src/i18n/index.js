@@ -9,6 +9,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { messageFromErrorOrUndefined } from '../exceptionUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +23,7 @@ let currentLocale = 'en';
 /**
  * Load all translation files for a given locale
  * @param {string} locale - Locale code (e.g., 'en', 'fr', 'es')
- * @returns {Record<string, string>} All messages for this locale
+ * @returns {Record<string, string> | {}} All messages for this locale
  */
 function loadMessages(locale) {
   const localeDir = path.join(__dirname, '..', '..', 'locales', locale);
@@ -48,7 +49,7 @@ function loadMessages(locale) {
       const json = JSON.parse(content);
       Object.assign(result, json);
     } catch (error) {
-      console.error(`Failed to load ${filePath}:`, error.message);
+      console.error(`Failed to load ${filePath}:`, messageFromErrorOrUndefined(error));
     }
   }
 
@@ -121,7 +122,7 @@ export function detectLocale() {
   // Parse formats like: en_US.UTF-8 => en, fr_FR => fr, pt-BR => pt-BR
   const match = env.match(/^([a-z]{2})([_-][A-Z]{2})?/i);
 
-  if (match) {
+  if (match && match[1]) {
     return match[1].toLowerCase(); // Return just language code (en, fr, es, etc.)
   }
 

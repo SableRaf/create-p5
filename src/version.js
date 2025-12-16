@@ -1,5 +1,6 @@
 import { writeFile } from './utils.js';
 import { t } from './i18n/index.js';
+import { isFetchErrorCandidate } from './exceptionUtils.js';
 
 /**
  * Checks if a version string is a stable release (semver compliant: X.Y.Z)
@@ -11,21 +12,43 @@ export function isStableVersion(version) {
 }
 
 /**
+ * @typedef {[string, string, string, string, string | undefined]} VersionMatchArray
+ * The structure of the match array:
+ * 0: Full match (e.g., "1.2.3-beta")
+ * 1: Major (e.g., "1")
+ * 2: Minor (e.g., "2")
+ * 3: Patch (e.g., "3")
+ * 4: Prerelease (e.g., "beta" or undefined)
+ */
+
+/**
  * Parses a semantic version string into its components
  * @param {string} version - Version string to parse (e.g., "1.9.0" or "2.1.0-rc.1")
  * @returns {{ major: number, minor: number, patch: number, prerelease: string|null }} Parsed version components
  */
 export function parseVersion(version) {
   const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/);
-  if (!match) {
+  if (!isVersionMatch(match)) {
     throw new Error(`Invalid semver version: ${version}`);
   }
+
   return {
     major: parseInt(match[1], 10),
     minor: parseInt(match[2], 10),
     patch: parseInt(match[3], 10),
     prerelease: match[4] || null
   };
+}
+
+/**
+ * Type guard to assert that the match result is a non-null array with the expected length (5 elements, including capture group 0).
+ * @param {RegExpMatchArray | null} match
+ * @returns {match is VersionMatchArray}
+ */
+function isVersionMatch(match) {
+    // Check for null and ensure the array has the expected length of 5.
+    // (Full match + 3 main groups + 1 optional group = 5)
+    return match !== null && match.length === 5;
 }
 
 
@@ -90,6 +113,10 @@ export async function fetchVersions(includePrerelease = false) {
 
     return { latest, versions };
   } catch (error) {
+    if (!isFetchErrorCandidate(error) ){
+      throw new Error('An unknown object was thrown:', {cause: error});
+    }
+    
     if (error.message.includes('fetch failed') || error.code === 'ENOTFOUND') {
       throw new Error('Unable to reach jsdelivr CDN API. Please check your internet connection and try again.');
     }
@@ -97,15 +124,16 @@ export async function fetchVersions(includePrerelease = false) {
   }
 }
 
+
 /**
  * Downloads p5.js files for local mode from jsdelivr CDN
  * @param {string} version - The p5.js version to download
  * @param {string} targetDir - The directory path where files should be saved
- * @param {Object} [spinner] - Optional spinner object with stop() method for progress feedback
+ * @param {import('./ui/display.js').SpinnerControl} [spinner] - Optional spinner object with stop() method for progress feedback
  * @returns {Promise<void>}
  * @throws {Error} If download fails or files cannot be written
  */
-export async function downloadP5Files(version, targetDir, spinner = null) {
+export async function downloadP5Files(version, targetDir, spinner = undefined) {
   const cdnBase = 'https://cdn.jsdelivr.net/npm';
 
   // Download both regular and minified versions
@@ -117,7 +145,13 @@ export async function downloadP5Files(version, targetDir, spinner = null) {
   try {
     for (const file of files) {
       if (spinner) {
-        spinner.message(t('spinner.downloadingP5File', { filename: file.name }));
+        // spinner.message(
+        //   t('spinner.downloadingP5File', { filename: file.name }
+        //   ));
+
+          spinner.message(
+          "potato"
+          );
       }
 
       const response = await fetch(file.url);
@@ -135,6 +169,9 @@ export async function downloadP5Files(version, targetDir, spinner = null) {
       spinner.stop(t('spinner.downloadedP5'));
     }
   } catch (error) {
+    if (!isFetchErrorCandidate(error)){
+      throw new Error('An unknown object was thrown:', {cause: error});
+    }
     if (spinner) {
       spinner.stop(t('spinner.failedP5'));
     }
@@ -155,13 +192,13 @@ export async function downloadP5Files(version, targetDir, spinner = null) {
  * For global-mode sketches, downloads both global.d.ts and main definition file.
  * @param {string} p5Version - The p5.js version to download type definitions for
  * @param {string} targetDir - The directory path where type definitions should be saved
- * @param {Object} [spinner] - Optional spinner object with stop() method for progress feedback
+ * @param {import('./ui/display.js').SpinnerControl} [spinner] - Optional spinner object with stop() method for progress feedback
  * @param {string} [template] - The template being used ('instance', 'basic', 'typescript', 'empty')
  * @param {string} [previousVersion] - Optional previous p5.js version (for detecting major version changes)
  * @returns {Promise<string>} The actual types version used
  * @throws {Error} If download fails
  */
-export async function downloadTypeDefinitions(p5Version, targetDir, spinner = null, template = null, previousVersion = null) {
+export async function downloadTypeDefinitions(p5Version, targetDir, spinner = undefined, template = undefined, previousVersion = undefined) {
   const cdnBase = 'https://cdn.jsdelivr.net/npm';
   const isInstanceMode = template === 'instance';
 
@@ -250,6 +287,10 @@ export async function downloadTypeDefinitions(p5Version, targetDir, spinner = nu
       return typesVersion;
     }
   } catch (error) {
+    if (!isFetchErrorCandidate(error)){
+      throw new Error("An unknown error object was thrown", {cause: error});
+    }
+
     if (spinner) {
       spinner.stop(t('spinner.failedTypes'));
     }

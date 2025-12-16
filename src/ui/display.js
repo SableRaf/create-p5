@@ -151,11 +151,17 @@ export function note(lineKeys, titleKey, vars = {}) {
   p.note(content, title);
 }
 
+
+/**
+ * @typedef {object} SpinnerControl
+ * @property {function(string, Record<string, any>=): void} message
+ * @property {function(string, Record<string, any>=): void} stop
+ */
 /**
  * Create and manage a spinner
  * @param {string} key - Translation key for initial message
  * @param {Record<string, any>} [vars] - Variables for interpolation
- * @returns {Object} Spinner object with message(key, vars) and stop(key, vars) methods
+ * @returns {SpinnerControl}  Spinner object with message(key, vars) and stop(key, vars) methods, for managing the control's lifecycle.
  */
 export function spinner(key, vars) {
   if (shouldSuppress('spinner')) {
@@ -170,10 +176,11 @@ export function spinner(key, vars) {
   // Wrap methods to use translation keys
   const originalMessage = s.message.bind(s);
   const originalStop = s.stop.bind(s);
-
-  s.message = (key, vars) => originalMessage(t(key, vars));
-  s.stop = (key, vars) => originalStop(t(key, vars));
-
+  //@ts-ignore not getting into this for now
+  s.message = /** @type {SpinnerControl["message"]} */ (key, vars) => originalMessage(t(key, vars));
+  //@ts-ignore  not getting into this for now
+  s.stop =  /** @type {SpinnerControl["stop"]} */ (key, vars) => originalStop(t(key, vars));
+  //@ts-ignore
   return s;
 }
 

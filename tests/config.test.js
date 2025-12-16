@@ -19,8 +19,10 @@ describe('ConfigManager', () => {
 
     const cfg = await readConfig(configPath);
     expect(cfg).not.toBeNull();
-    expect(cfg.version).toBe('1.9.0');
-    expect(cfg.mode).toBe('cdn');
+    if (cfg){
+      expect(cfg.version).toBe('1.9.0');
+      expect(cfg.mode).toBe('cdn');
+    }
 
     // cleanup
     await fs.rm(tmpDir, { recursive: true, force: true });
