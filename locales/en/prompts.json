@@ -50,5 +50,7 @@
 
   "prompt.update.deleteLib.message": "Delete the local lib/ directory?",
 
-  "prompt.cancel.sketchCreation": "You cancelled the sketch creation"
+  "prompt.cancel.sketchCreation": "You cancelled the sketch creation",
+  
+  "prompt.cancel.sketchUpdate": "You cancelled the sketch update"
 }
