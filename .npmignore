@@ -16,3 +16,5 @@ images/
 .prettierrc*
 vitest.config.*
 CLAUDE.md
+AGENTS.md
+CONTRIBUTING.md
