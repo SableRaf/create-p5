@@ -17,11 +17,17 @@ export function isRemoteTemplateSpec(t) {
 
 /**
  * Normalize common GitHub URL forms into a degit-friendly spec.
+ * Degit supports:
+ * - user/repo
+ * - user/repo/subdirectory
+ * - user/repo#branch
+ * - user/repo/subdirectory#branch
+ * - Full GitHub URLs (github:user/repo, gitlab:user/repo, etc.)
+ *
  * Examples:
  * - https://github.com/user/repo -> user/repo
  * - https://github.com/user/repo.git -> user/repo
  * - https://github.com/user/repo/tree/branch/path -> user/repo/path#branch
- * Otherwise returns the original string.
  *
  * @param {string} t
  * @returns {string}
@@ -29,6 +35,7 @@ export function isRemoteTemplateSpec(t) {
 export function normalizeTemplateSpec(t) {
   if (!t || typeof t !== 'string') return t;
 
+  // Handle full URLs first (GitHub tree/blob forms)
   if (/^https?:\/\//.test(t)) {
     try {
       const u = new URL(t);
@@ -38,12 +45,23 @@ export function normalizeTemplateSpec(t) {
           const user = parts[0];
           let repo = parts[1].replace(/\.git$/, '');
 
+          // Handle /tree/<ref>/path/to/subdir
           if (parts[2] === 'tree' && parts[3]) {
             const branch = parts[3];
             const subpath = parts.slice(4).join('/');
             let spec = `${user}/${repo}`;
             if (subpath) spec += `/${subpath}`;
             spec += `#${branch}`;
+            return spec;
+          }
+
+          // Handle blob URLs - treat as subdirectory (degit will clone the repo/subdir)
+          if (parts[2] === 'blob' && parts[3]) {
+            const ref = parts[3];
+            const filePath = parts.slice(4).join('/');
+            let spec = `${user}/${repo}`;
+            if (filePath) spec += `/${filePath}`;
+            spec += `#${ref}`;
             return spec;
           }
 
@@ -55,6 +73,47 @@ export function normalizeTemplateSpec(t) {
     }
   }
 
+  // Handle shorthand forms and "#ref/path" syntaxes
+  // Examples:
+  // - user/repo -> user/repo
+  // - user/repo/subdir -> user/repo/subdir
+  // - user/repo#ref -> user/repo#ref
+  // - user/repo#ref/path -> user/repo/path#ref
+  // - user/repo/path#ref -> user/repo/path#ref (already ok)
+  if (t.includes('#')) {
+    const [base, hash] = t.split('#', 2);
+    if (!hash) return t;
+
+    // If hash contains a slash, interpret as ref/path -> convert to base/path#ref
+    if (hash.includes('/')) {
+      const parts = hash.split('/');
+      const ref = parts.shift();
+      const subpath = parts.join('/');
+      let baseParts = base.split('/').filter(Boolean);
+      if (baseParts.length >= 2) {
+        // strip .git from repo name if present
+        baseParts[1] = baseParts[1].replace(/\.git$/, '');
+        const normalizedBase = baseParts.join('/');
+        return subpath ? `${normalizedBase}/${subpath}#${ref}` : `${normalizedBase}#${ref}`;
+      }
+    }
+
+    // No slash in hash -> already in degit-friendly form (base#ref)
+    // Ensure repo .git suffix removed when possible
+    const bp = base.split('/').filter(Boolean);
+    if (bp.length >= 2) {
+      bp[1] = bp[1].replace(/\.git$/, '');
+      return `${bp.join('/') }#${hash}`;
+    }
+  }
+
+  // For non-URL, non-hash shorthand preserve but strip .git from repo if present
+  const parts = t.split('/').filter(Boolean);
+  if (parts.length >= 2) {
+    parts[1] = parts[1].replace(/\.git$/, '');
+    return parts.join('/');
+  }
+
   return t;
 }
 
@@ -62,6 +121,13 @@ export function normalizeTemplateSpec(t) {
 /**
  * Clone a remote template into `targetPath` using `degit`.
  * Accepts full URLs, GitHub shorthand, and branch/subpath specifiers.
+ * Supports all formats that degit supports:
+ * - user/repo
+ * - user/repo/subdirectory
+ * - user/repo#branch
+ * - user/repo/subdirectory#branch
+ * - gitlab:user/repo
+ * - bitbucket:user/repo
  *
  * @param {string} templateSpec
  * @param {string} targetPath
