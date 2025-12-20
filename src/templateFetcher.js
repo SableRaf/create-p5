@@ -37,6 +37,12 @@ export function isRemoteTemplateSpec(t) {
 export function normalizeTemplateSpec(t) {
   if (!t || typeof t !== 'string') return t;
 
+  // Handle Codeberg shorthand (codeberg:user/repo or git@codeberg.org:user/repo)
+  // Keep these in their original form for fetchTemplate to detect
+  if (/^codeberg:/.test(t) || /^git@codeberg\.org:/.test(t)) {
+    return t;
+  }
+
   // Handle full URLs first (GitHub tree/blob forms and Codeberg src/branch forms)
   if (/^https?:\/\//.test(t)) {
     try {
@@ -162,8 +168,10 @@ export function normalizeTemplateSpec(t) {
 export async function fetchTemplate(templateSpec, targetPath, options = {}) {
   const spec = normalizeTemplateSpec(templateSpec);
 
-  // Check if this is a Codeberg URL
-  const isCodeberg = /^https?:\/\/codeberg\.org/.test(templateSpec);
+  // Check if this is a Codeberg URL or shorthand
+  const isCodeberg = /^https?:\/\/codeberg\.org/.test(templateSpec) ||
+                      /^codeberg:/.test(templateSpec) ||
+                      /^git@codeberg\.org:/.test(templateSpec);
 
   // Check if this is a GitHub single file before trying degit
   // (degit creates files instead of directories for single files)

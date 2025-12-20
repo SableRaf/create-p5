@@ -22,6 +22,86 @@ afterEach(async () => {
 });
 
 describe('parseCodebergSpec', () => {
+  it('parses codeberg:user/repo shorthand', () => {
+    const result = parseCodebergSpec('codeberg:user/repo');
+    expect(result).toEqual({
+      user: 'user',
+      repo: 'repo',
+      ref: 'main',
+      subpath: ''
+    });
+  });
+
+  it('parses codeberg:user/repo with custom ref', () => {
+    const result = parseCodebergSpec('codeberg:user/repo#dev');
+    expect(result).toEqual({
+      user: 'user',
+      repo: 'repo',
+      ref: 'dev',
+      subpath: ''
+    });
+  });
+
+  it('parses codeberg:user/repo/subpath', () => {
+    const result = parseCodebergSpec('codeberg:user/repo/examples/basic');
+    expect(result).toEqual({
+      user: 'user',
+      repo: 'repo',
+      ref: 'main',
+      subpath: 'examples/basic'
+    });
+  });
+
+  it('parses codeberg:user/repo/subpath#ref', () => {
+    const result = parseCodebergSpec('codeberg:user/repo/templates#v1.0');
+    expect(result).toEqual({
+      user: 'user',
+      repo: 'repo',
+      ref: 'v1.0',
+      subpath: 'templates'
+    });
+  });
+
+  it('parses git@codeberg.org:user/repo SSH format', () => {
+    const result = parseCodebergSpec('git@codeberg.org:user/repo');
+    expect(result).toEqual({
+      user: 'user',
+      repo: 'repo',
+      ref: 'main',
+      subpath: ''
+    });
+  });
+
+  it('parses git@codeberg.org:user/repo with custom ref', () => {
+    const result = parseCodebergSpec('git@codeberg.org:user/repo#develop');
+    expect(result).toEqual({
+      user: 'user',
+      repo: 'repo',
+      ref: 'develop',
+      subpath: ''
+    });
+  });
+
+  it('parses git@codeberg.org:user/repo/subpath', () => {
+    const result = parseCodebergSpec('git@codeberg.org:user/repo/src/templates');
+    expect(result).toEqual({
+      user: 'user',
+      repo: 'repo',
+      ref: 'main',
+      subpath: 'src/templates'
+    });
+  });
+
+  it('parses git@codeberg.org:user/repo.git', () => {
+    const result = parseCodebergSpec('git@codeberg.org:user/repo.git');
+    expect(result).toEqual({
+      user: 'user',
+      repo: 'repo',
+      ref: 'main',
+      subpath: ''
+    });
+  });
+
   it('parses basic Codeberg URL', () => {
     const result = parseCodebergSpec('https://codeberg.org/user/repo');
     expect(result).toEqual({

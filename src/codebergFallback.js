@@ -9,11 +9,48 @@ const tar = require('tar');
 
 /**
  * Parse a Codeberg URL or spec into its components
+ * Supports multiple formats:
+ * - codeberg:user/repo
+ * - codeberg:user/repo/subpath#ref
+ * - git@codeberg.org:user/repo
+ * - https://codeberg.org/user/repo
  * @param {string} spec - Codeberg URL or spec
  * @returns {{user: string, repo: string, ref: string, subpath: string} | null}
  */
 export function parseCodebergSpec(spec) {
   if (!spec) return null;
+
+  // Handle codeberg:user/repo shorthand
+  if (/^codeberg:/.test(spec)) {
+    const withoutPrefix = spec.replace(/^codeberg:/, '');
+    const [basePart, hashRef] = withoutPrefix.split('#');
+    const parts = basePart.split('/').filter(Boolean);
+
+    if (parts.length < 2) return null;
+
+    const user = parts[0];
+    const repo = parts[1].replace(/\.git$/, '');
+    const subpath = parts.slice(2).join('/');
+    const ref = hashRef || 'main';
+
+    return { user, repo, ref, subpath };
+  }
+
+  // Handle git@codeberg.org:user/repo SSH format
+  if (/^git@codeberg\.org:/.test(spec)) {
+    const withoutPrefix = spec.replace(/^git@codeberg\.org:/, '');
+    const [basePart, hashRef] = withoutPrefix.split('#');
+    const parts = basePart.split('/').filter(Boolean);
+
+    if (parts.length < 2) return null;
+
+    const user = parts[0];
+    const repo = parts[1].replace(/\.git$/, '');
+    const subpath = parts.slice(2).join('/');
+    const ref = hashRef || 'main';
+
+    return { user, repo, ref, subpath };
+  }
 
   // Handle full Codeberg URLs: https://codeberg.org/user/repo/... or https://codeberg.org/user/repo#ref
   if (/^https?:\/\/codeberg\.org/.test(spec)) {
@@ -26,7 +63,7 @@ export function parseCodebergSpec(spec) {
       if (parts.length < 2) return null;
 
       const user = parts[0];
-      const repo = parts[1];
+      const repo = parts[1].replace(/\.git$/, '');
 
       let ref = 'main';
       let subpath = '';

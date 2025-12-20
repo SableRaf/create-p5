@@ -97,6 +97,40 @@ describe('Remote hosts integration tests', () => {
         .catch(() => false);
       expect(readmeExists).toBe(true);
     }, 30000);
+
+    it('should fetch repository using codeberg:user/repo shorthand', async () => {
+      const targetPath = path.join(testDir, 'codeberg-shorthand');
+
+      // Use degit-like shorthand syntax
+      await fetchTemplate('codeberg:blazp/p5js_template', targetPath);
+
+      // Verify the directory was created
+      const stats = await fs.stat(targetPath);
+      expect(stats.isDirectory()).toBe(true);
+
+      // Verify some expected files exist
+      const readmeExists = await fs.access(path.join(targetPath, 'README.md'))
+        .then(() => true)
+        .catch(() => false);
+      expect(readmeExists).toBe(true);
+    }, 30000);
+
+    it('should fetch repository using git@codeberg.org:user/repo format', async () => {
+      const targetPath = path.join(testDir, 'codeberg-git-ssh');
+
+      // Use SSH-style syntax
+      await fetchTemplate('git@codeberg.org:blazp/p5js_template', targetPath);
+
+      // Verify the directory was created
+      const stats = await fs.stat(targetPath);
+      expect(stats.isDirectory()).toBe(true);
+
+      // Verify some expected files exist
+      const readmeExists = await fs.access(path.join(targetPath, 'README.md'))
+        .then(() => true)
+        .catch(() => false);
+      expect(readmeExists).toBe(true);
+    }, 30000);
   });
 
   describe('Unsupported hosts error handling', () => {
