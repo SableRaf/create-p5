@@ -102,7 +102,10 @@ export async function downloadSingleFile(user, repo, ref, filepath, targetPath) 
             reject(new Error(`Redirect without Location header: HTTP ${response.statusCode}`));
             return;
           }
-          downloadWithRedirects(location, redirectCount + 1);
+          response.resume();
+          response.on('end', () => {
+            downloadWithRedirects(location, redirectCount + 1);
+          });
           return;
         }
 
