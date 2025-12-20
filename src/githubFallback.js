@@ -82,26 +82,48 @@ export async function downloadSingleFile(user, repo, ref, filepath, targetPath) 
   const filePath = path.join(targetPath, filename);
 
   return new Promise((resolve, reject) => {
-    https.get(url, (response) => {
-      if (response.statusCode === 404) {
-        reject(new Error(`File not found: ${url}`));
-        return;
-      }
-      if (response.statusCode !== 200) {
-        reject(new Error(`Failed to download file: HTTP ${response.statusCode}`));
+    const downloadWithRedirects = (urlToFetch, redirectCount = 0) => {
+      if (redirectCount > 10) {
+        reject(new Error('Too many redirects'));
         return;
       }
 
-      const fileStream = createWriteStream(filePath);
-      response.pipe(fileStream);
+      https.get(urlToFetch, (response) => {
+        if (response.statusCode === 404) {
+          reject(new Error(`File not found: ${url}`));
+          return;
+        }
 
-      fileStream.on('finish', () => {
-        fileStream.close();
-        resolve();
-      });
+        // Handle redirects
+        if (response.statusCode === 301 || response.statusCode === 302 ||
+            response.statusCode === 307 || response.statusCode === 308) {
+          const location = response.headers.location;
+          if (!location) {
+            reject(new Error(`Redirect without Location header: HTTP ${response.statusCode}`));
+            return;
+          }
+          downloadWithRedirects(location, redirectCount + 1);
+          return;
+        }
 
-      fileStream.on('error', reject);
-    }).on('error', reject);
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download file: HTTP ${response.statusCode}`));
+          return;
+        }
+
+        const fileStream = createWriteStream(filePath);
+        response.pipe(fileStream);
+
+        fileStream.on('finish', () => {
+          fileStream.close();
+          resolve();
+        });
+
+        fileStream.on('error', reject);
+      }).on('error', reject);
+    };
+
+    downloadWithRedirects(url);
   });
 }
 
@@ -119,36 +141,57 @@ export async function downloadGitHubArchive(user, repo, ref, subpath, targetPath
   await fs.mkdir(targetPath, { recursive: true });
 
   return new Promise((resolve, reject) => {
-    https.get(archiveUrl, (response) => {
-      if (response.statusCode !== 200) {
-        reject(new Error(`Failed to download archive: HTTP ${response.statusCode}`));
+    const downloadWithRedirects = (urlToFetch, redirectCount = 0) => {
+      if (redirectCount > 10) {
+        reject(new Error('Too many redirects'));
         return;
       }
 
-      const repoPrefix = `${repo}-${ref}/`;
-      const stripPrefix = subpath ? `${repoPrefix}${subpath}/` : repoPrefix;
-
-      const extractor = tar.extract({
-        cwd: targetPath,
-        strip: stripPrefix.split('/').length - 1,
-        filter: (entryPath) => {
-          // Only extract files that are in the target subpath
-          if (subpath) {
-            return entryPath.startsWith(stripPrefix);
+      https.get(urlToFetch, (response) => {
+        // Handle redirects
+        if (response.statusCode === 301 || response.statusCode === 302 ||
+            response.statusCode === 307 || response.statusCode === 308) {
+          const location = response.headers.location;
+          if (!location) {
+            reject(new Error(`Redirect without Location header: HTTP ${response.statusCode}`));
+            return;
           }
-          return entryPath.startsWith(repoPrefix);
+          downloadWithRedirects(location, redirectCount + 1);
+          return;
         }
-      });
 
-      const gunzip = createGunzip();
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download archive: HTTP ${response.statusCode}`));
+          return;
+        }
 
-      // Ensure errors from all streams in the pipeline reject the promise
-      response.on('error', reject);
-      gunzip.on('error', reject);
-      extractor.on('error', reject);
-      extractor.on('finish', resolve);
+        const repoPrefix = `${repo}-${ref}/`;
+        const stripPrefix = subpath ? `${repoPrefix}${subpath}/` : repoPrefix;
 
-      response.pipe(gunzip).pipe(extractor);
-    }).on('error', reject);
+        const extractor = tar.extract({
+          cwd: targetPath,
+          strip: stripPrefix.split('/').length - 1,
+          filter: (entryPath) => {
+            // Only extract files that are in the target subpath
+            if (subpath) {
+              return entryPath.startsWith(stripPrefix);
+            }
+            return entryPath.startsWith(repoPrefix);
+          }
+        });
+
+        const gunzip = createGunzip();
+
+        // Ensure errors from all streams in the pipeline reject the promise
+        response.on('error', reject);
+        gunzip.on('error', reject);
+        extractor.on('error', reject);
+        extractor.on('finish', resolve);
+
+        response.pipe(gunzip).pipe(extractor);
+      }).on('error', reject);
+    };
+
+    downloadWithRedirects(archiveUrl);
   });
 }
