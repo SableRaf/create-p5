@@ -139,6 +139,28 @@ This uses [degit](https://github.com/Rich-Harris/degit) to clone the template re
 > [!NOTE]
 > When using community templates, the `--language` and `--p5-mode` flags are not used. The template defines its own structure.
 
+You can also specify a subfolder inside a repository or point directly at a single file. Examples:
+
+```bash
+# Whole repository (existing example)
+npm create p5js my-project -- --template user/repo
+
+# Subfolder inside a repository (uses the specified subpath)
+npm create p5js my-project -- --template user/repo/path/to/template
+
+# GitHub tree URL with branch and subfolder
+npm create p5js my-project -- --template "https://github.com/user/repo/tree/main/path/to/template"
+
+# Single file inside a repository (downloads just that file)
+npm create p5js my-project -- --template user/repo/path/to/file.js
+```
+
+Note: Single-file templates will download the specified file into your new project directory — they do not create additional scaffold files. For full project scaffolding prefer a repository or subfolder template.
+
+The tool support the full range of degit syntax for specifying branches, tags, and commit hashes. See the [degit documentation](https://github.com/Rich-Harris/degit).
+
+We also added support for Codeberg repositories using the same syntax.
+
 ## Troubleshooting
 
 ### Hints or Autocomplete Not Working in VS Code
