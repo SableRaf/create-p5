@@ -172,7 +172,9 @@ export async function downloadGitHubArchive(user, repo, ref, subpath, targetPath
           return;
         }
 
-        const repoPrefix = `${repo}-${ref}/`;
+        // GitHub archive root directories normalize branch names by replacing slashes with dashes.
+        const archiveRef = ref.replace(/[\\/]/g, '-');
+        const repoPrefix = `${repo}-${archiveRef}/`;
         const stripPrefix = subpath ? `${repoPrefix}${subpath}/` : repoPrefix;
 
         const extractor = tar.extract({
