@@ -353,7 +353,7 @@ export async function scaffold(args) {
     }
 
     // STEP: If local mode, create lib directory and download p5.js files
-    if (selectedMode === 'local') {
+    if (selectedMode === 'local'  && selectedLanguage !== 'typescript') {
       const libPath = path.join(targetPath, 'lib');
       await fs.mkdir(libPath, { recursive: true });
       try {
@@ -369,24 +369,24 @@ export async function scaffold(args) {
         display.error('error.fetchVersions.failed');
         display.message(error.message);
         display.message('');
-        display.info('error.cleanup');
-        await fs.rm(targetPath, { recursive: true, force: true });
+        display.warn('error.partialProjectCreated', { path: projectPath });
+        display.info('error.manualCleanup');
         process.exit(1);
       }
     }
-
-    // STEP: Inject p5.js script tag into index.html
-    const indexPath = path.join(targetPath, 'index.html');
-    const htmlContent = await fs.readFile(indexPath, 'utf-8');
-    const updatedHtml = injectP5Script(htmlContent, selectedVersion, selectedMode);
-    await fs.writeFile(indexPath, updatedHtml, 'utf-8');
-
-    // STEP: Download TypeScript definitions (skip for basic setup, or for flag)
+    if (selectedLanguage !== 'typescript'){
+      // STEP: Inject p5.js script tag into index.html
+      const indexPath = path.join(targetPath, 'index.html');
+      const htmlContent = await fs.readFile(indexPath, 'utf-8');
+      const updatedHtml = injectP5Script(htmlContent, selectedVersion, selectedMode);
+      await fs.writeFile(indexPath, updatedHtml, 'utf-8');
+    }
+    // STEP: Download TypeScript definitions (skip for basic setup)
     let typeDefsVersion = null;
     if (setupType === 'basic') {
       // Basic setup never includes type definitions
       display.info('info.skipTypesBasic');
-    } else if (args.types !== false) {
+    } else if (args.types !== false && selectedLanguage !== 'typescript') {
       const typesPath = path.join(targetPath, 'types');
       await fs.mkdir(typesPath, { recursive: true });
       try {
@@ -406,7 +406,9 @@ export async function scaffold(args) {
         typeDefsVersion = null;
       }
     } else {
-      display.warn('info.skipTypes');
+      if (args.types === false){
+        display.warn('info.skipTypes');
+      }
     }
 
     // STEP: Create .p5-config.json in project root
@@ -502,13 +504,12 @@ export async function scaffold(args) {
     // STEP: Attempt to clean up the project directory if it was partially created
     try {
       if (await directoryExists(targetPath)) {
-        const cleanupSpinner = display.spinner('spinner.cleaningUp');
-        await fs.rm(targetPath, { recursive: true, force: true });
-        cleanupSpinner.stop('spinner.cleanedUp');
+        display.message('');
+        display.warn('error.partialProjectCreated', { path: projectPath });
+        display.info('error.manualCleanup');
       }
-    } catch (cleanupError) {
-      display.warn('error.cleanup');
-      display.message(cleanupError.message);
+    } catch (checkError) {
+      // Ignore errors checking directory existence
     }
 
     const helpLines = [
