@@ -27,13 +27,21 @@ Ensure index.html is pointing at the right one.
 
 ### (optional) Type-check ALL your files
 
-VSCode will type-check the files you _currently have open_.
+You can type-check _all_ your files from the command-line, with:
 
-To instead type-check _all_ your files, either:
-
-Run 
 ```bash
 npm run type-check
 ```
+or continually with:
 
-Or use the keyboard short-cut `ctrl-shift-b` (windows) or `cmd-shift-b` (mac) to run the default vscode "build-task" which has been configured to call the type-check command.  This will also populate the vscode problems window with a list of any errors.
+```bash
+npm run type-check --watch
+```
+
+**In-editor** type-checking:
+
+If you're using the editor VSCode, it will automatically type-check the files you _currently have open_ and present the errors in the vscode "problems" window.
+
+If you're using VSCode, you can also use the keyboard short-cut `ctrl-shift-b` (windows) or `cmd-shift-b` (mac) to type-check **all** files and populate the vscode "problems" window with a list of any errors.
+
+(For the curious, this is configured in `.vscode/tasks.json` to call `npm run type-check` behind the scenes.)
