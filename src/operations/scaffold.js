@@ -370,7 +370,7 @@ export async function scaffold(args) {
         display.message(error.message);
         display.message('');
         display.info('error.cleanup');
-        await fs.rm(targetPath, { recursive: true, force: true });
+        // await fs.rm(targetPath, { recursive: true, force: true });
         process.exit(1);
       }
     }
@@ -503,7 +503,7 @@ export async function scaffold(args) {
     try {
       if (await directoryExists(targetPath)) {
         const cleanupSpinner = display.spinner('spinner.cleaningUp');
-        await fs.rm(targetPath, { recursive: true, force: true });
+        // await fs.rm(targetPath, { recursive: true, force: true });
         cleanupSpinner.stop('spinner.cleanedUp');
       }
     } catch (cleanupError) {
